@@ -13,6 +13,10 @@ export interface ElectronAPI {
     getEvents: (days: number) => Promise<any[]>
     getSSIDList: () => Promise<string[]>
   }
+  settings: {
+    getAutoStart: () => Promise<boolean>
+    setAutoStart: (enabled: boolean) => Promise<void>
+  }
 }
 
 const api: ElectronAPI = {
@@ -33,6 +37,10 @@ const api: ElectronAPI = {
     getDaily: (days) => ipcRenderer.invoke('stats:get-daily', days),
     getEvents: (days) => ipcRenderer.invoke('stats:get-events', days),
     getSSIDList: () => ipcRenderer.invoke('stats:get-ssid-list')
+  },
+  settings: {
+    getAutoStart: () => ipcRenderer.invoke('settings:get-auto-start'),
+    setAutoStart: (enabled) => ipcRenderer.invoke('settings:set-auto-start', enabled)
   }
 }
 

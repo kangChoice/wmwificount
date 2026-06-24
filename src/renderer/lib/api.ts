@@ -38,6 +38,10 @@ declare global {
         getEvents: (days: number) => Promise<ConnectionEventData[]>
         getSSIDList: () => Promise<string[]>
       }
+      settings: {
+        getAutoStart: () => Promise<boolean>
+        setAutoStart: (enabled: boolean) => Promise<void>
+      }
     }
   }
 }

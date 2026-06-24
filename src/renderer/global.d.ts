@@ -15,6 +15,10 @@ declare global {
         getEvents: (days: number) => Promise<any[]>
         getSSIDList: () => Promise<string[]>
       }
+      settings: {
+        getAutoStart: () => Promise<boolean>
+        setAutoStart: (enabled: boolean) => Promise<void>
+      }
     }
   }
 }

@@ -8,12 +8,32 @@ interface Props {
 function Settings({ onRefresh }: Props) {
   const [events, setEvents] = useState<ConnectionEventData[]>([])
   const [showEvents, setShowEvents] = useState(false)
+  const [autoStart, setAutoStart] = useState(false)
+  const [autoStartLoaded, setAutoStartLoaded] = useState(false)
 
   useEffect(() => {
     if (showEvents) {
       window.electronAPI.stats.getEvents(7).then(setEvents).catch(console.error)
     }
   }, [showEvents])
+
+  useEffect(() => {
+    window.electronAPI.settings.getAutoStart().then(val => {
+      setAutoStart(val)
+      setAutoStartLoaded(true)
+    }).catch(console.error)
+  }, [])
+
+  const handleToggleAutoStart = useCallback(async () => {
+    const newVal = !autoStart
+    setAutoStart(newVal)
+    try {
+      await window.electronAPI.settings.setAutoStart(newVal)
+    } catch (err) {
+      console.error('Failed to set auto-start:', err)
+      setAutoStart(!newVal) // revert
+    }
+  }, [autoStart])
 
   const handleExport = useCallback(() => {
     window.electronAPI.stats.getEvents(365).then(allEvents => {
@@ -41,6 +61,29 @@ function Settings({ onRefresh }: Props) {
 
   return (
     <div>
+      <div style={styles.card}>
+        <h2 style={styles.sectionTitle}>通用设置</h2>
+        <div style={styles.toggleRow}>
+          <div>
+            <div style={styles.toggleLabel}>开机自启动</div>
+            <div style={styles.toggleHint}>电脑开机后自动在后台运行</div>
+          </div>
+          <button
+            style={{
+              ...styles.toggleSwitch,
+              backgroundColor: autoStart ? '#34c759' : '#e8e8ed',
+            }}
+            onClick={handleToggleAutoStart}
+            disabled={!autoStartLoaded}
+          >
+            <div style={{
+              ...styles.toggleKnob,
+              transform: autoStart ? 'translateX(20px)' : 'translateX(0)',
+            }} />
+          </button>
+        </div>
+      </div>
+
       <div style={styles.card}>
         <h2 style={styles.sectionTitle}>数据管理</h2>
         <button style={styles.button} onClick={handleExport}>
@@ -95,6 +138,44 @@ function Settings({ onRefresh }: Props) {
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  toggleRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '4px 0'
+  },
+  toggleLabel: {
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#1d1d1f'
+  },
+  toggleHint: {
+    fontSize: '11px',
+    color: '#86868b',
+    marginTop: '2px'
+  },
+  toggleSwitch: {
+    width: '44px',
+    height: '24px',
+    borderRadius: '12px',
+    border: 'none',
+    cursor: 'pointer',
+    position: 'relative' as const,
+    transition: 'background-color 0.2s',
+    padding: 0,
+    flexShrink: 0
+  },
+  toggleKnob: {
+    width: '20px',
+    height: '20px',
+    borderRadius: '50%',
+    backgroundColor: '#fff',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+    position: 'absolute' as const,
+    top: '2px',
+    left: '2px',
+    transition: 'transform 0.2s'
+  },
   card: {
     backgroundColor: '#fff',
     borderRadius: '12px',

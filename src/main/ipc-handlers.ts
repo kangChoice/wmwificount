@@ -1,7 +1,40 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, app } from 'electron'
+import path from 'path'
+import fs from 'fs'
 import { dataStore } from './storage'
 import { WiFiMonitor } from './monitor'
 import { ConnectionEvent, DailyStats, WiFiState } from './monitor/types'
+
+const settingsPath = path.join(app.getPath('userData'), 'settings.json')
+
+function loadSettings(): Record<string, any> {
+  try {
+    if (fs.existsSync(settingsPath)) {
+      return JSON.parse(fs.readFileSync(settingsPath, 'utf-8'))
+    }
+  } catch { /* ignore */ }
+  return {}
+}
+
+function saveSettings(settings: Record<string, any>): void {
+  try {
+    const dir = path.dirname(settingsPath)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+  } catch { /* ignore */ }
+}
+
+function getAutoStart(): boolean {
+  return app.getLoginItemSettings().openAtLogin
+}
+
+function setAutoStart(enabled: boolean): void {
+  app.setLoginItemSettings({
+    openAtLogin: enabled,
+    path: app.getPath('exe')
+  })
+  saveSettings({ ...loadSettings(), autoStart: enabled })
+}
 
 let monitor: WiFiMonitor | null = null
 
@@ -63,6 +96,14 @@ export function setupIPC(mainWindow: BrowserWindow): void {
 
   ipcMain.handle('stats:get-ssid-list', (): string[] => {
     return dataStore.getSSIDList()
+  })
+
+  ipcMain.handle('settings:get-auto-start', (): boolean => {
+    return getAutoStart()
+  })
+
+  ipcMain.handle('settings:set-auto-start', (_event, enabled: boolean): void => {
+    setAutoStart(enabled)
   })
 
   // In-memory state tracking for the monitor callback
