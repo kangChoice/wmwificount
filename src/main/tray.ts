@@ -1,0 +1,80 @@
+import { Tray, Menu, nativeImage, BrowserWindow, app } from 'electron'
+import path from 'path'
+
+export function createTray(mainWindow: BrowserWindow): Tray {
+  // Create a simple 16x16 tray icon programmatically (a colored dot)
+  const iconSize = 16
+  const canvas = nativeImage.createEmpty()
+
+  // For a proper app, you'd use a pre-made icon file.
+  // We'll use a minimal approach: create a green circle PNG-like icon
+  // Since we can't draw directly, let's reference an icon path
+  const iconPath = path.join(__dirname, '../../resources/icons/tray-icon.png')
+
+  let tray: Tray
+  try {
+    tray = new Tray(iconPath)
+  } catch {
+    // Fallback: create a simple image using nativeImage
+    // On Windows/macOS, a 1x1 transparent PNG byte array as minimal fallback
+    const fallbackPng = Buffer.from([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+      0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10, // 16x16
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x48, 0x83, // ...
+      0x78, 0x00, 0x00, 0x00, 0x06, 0x62, 0x4B, 0x47,
+      0x44, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0xA0,
+      0xBD, 0xA7, 0x93, 0x00, 0x00, 0x00, 0x09, 0x70,
+      0x48, 0x59, 0x73, 0x00, 0x00, 0x0E, 0xC4, 0x00,
+      0x00, 0x0E, 0xC4, 0x01, 0x95, 0x2B, 0x0E, 0x1B,
+      0x00, 0x00, 0x00, 0x27, 0x49, 0x44, 0x41, 0x54,
+      0x38, 0x4F, 0x63, 0x60, 0xA0, 0x33, 0x60, 0x60,
+      0x60, 0xF8, 0xCF, 0x40, 0x0B, 0xC0, 0xC0, 0xC0,
+      0xC0, 0xF0, 0x8F, 0x81, 0x56, 0x80, 0x81, 0x81,
+      0x81, 0x81, 0x56, 0x80, 0x81, 0x81, 0x81, 0x01,
+      0x00, 0x42, 0xEF, 0x09, 0x28, 0x4B, 0x52, 0x9C,
+      0x24, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E,
+      0x44, 0xAE, 0x42, 0x60, 0x82
+    ])
+    const img = nativeImage.createFromBuffer(fallbackPng)
+    tray = new Tray(img)
+  }
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '显示 WiFi Time Tracker',
+      click: () => {
+        mainWindow.show()
+        mainWindow.focus()
+      }
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.quit()
+      }
+    }
+  ])
+
+  tray.setToolTip('WiFi Time Tracker')
+  tray.setContextMenu(contextMenu)
+
+  // Left click / double-click to show window
+  tray.on('double-click', () => {
+    mainWindow.show()
+    mainWindow.focus()
+  })
+
+  // On Windows, left-click also shows the menu
+  tray.on('click', () => {
+    if (process.platform === 'win32') {
+      tray.popUpContextMenu()
+    } else {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+
+  return tray
+}
