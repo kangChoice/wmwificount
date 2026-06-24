@@ -11,8 +11,30 @@ if (process.platform === 'win32') {
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
+let trayCreated = false
+
+// Ensure only one instance of the app runs at a time
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    // Another instance was launched — focus the existing window
+    if (mainWindow) {
+      mainWindow.show()
+      mainWindow.focus()
+    }
+  })
+}
 
 async function createWindow(): Promise<void> {
+  // Protect against duplicate window/tray creation
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.show()
+    mainWindow.focus()
+    return
+  }
+
   mainWindow = new BrowserWindow({
     width: 400,
     height: 600,
