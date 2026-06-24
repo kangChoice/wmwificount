@@ -23,7 +23,7 @@ jobs:
           ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
         run: |
           npx electron-vite build
-          npx electron-builder --win
+          npx electron-builder --win --publish=never
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
@@ -40,9 +40,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
       - name: Build and package
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
         run: |
           npx electron-vite build
-          npx electron-builder --mac
+          npx electron-builder --mac --publish=never
       - name: Upload DMG
         uses: actions/upload-artifact@v4
         with:
@@ -52,11 +54,16 @@ jobs:
   release:
     needs: [build-win, build-mac]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
+      - name: Prepare release files
+        run: |
+          mkdir -p release-files
+          cp -r artifacts/wifi-time-tracker-windows/*.exe release-files/ 2>/dev/null || true
+          cp -r artifacts/wifi-time-tracker-macos/*.dmg release-files/ 2>/dev/null || true
+          ls -la release-files/
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -67,17 +74,18 @@ jobs:
 
             📶 自动统计电脑 WiFi 连接时长的小工具。
 
-            ### 下载指南
+            ### 下载
 
-            **Windows 用户** → 下载 `wifi-time-tracker-windows` 中的 `.exe` 安装包（NSIS 安装程序）
-            **macOS 用户** → 下载 `wifi-time-tracker-macos` 中的 `.dmg` 并安装
+            - **Windows**: `WiFi Time Tracker Setup *.exe`
+            - **macOS**: `WiFi Time Tracker *.dmg`
 
             ### 使用说明
 
-            安装后 App 自动在系统托盘后台运行，无需任何操作即可自动记录 WiFi 连接时长。
-            双击托盘 📶 图标可查看统计面板。
+            安装后 App 自动在系统托盘后台运行，无需操作即可自动记录 WiFi 连接时长。
+            双击托盘 📶 图标查看统计面板。
 
-            > ⚠️ macOS 首次打开需在"系统设置 → 隐私与安全性"中点击"仍要打开"
-          files: artifacts/**/*
+            > ⚠️ macOS 首次打开: 右键 App → 打开 或 系统设置 → 隐私与安全性 → 仍要打开
+          files: release-files/*
           draft: true
-          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
