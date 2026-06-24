@@ -29,11 +29,13 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "resources/build/icon.png"
+      "icon": "resources/build/icon.png",
+      "artifactName": "${productName} Setup.${ext}"
     },
     "mac": {
       "target": "dmg",
-      "icon": "resources/build/icon.png"
+      "icon": "resources/build/icon.png",
+      "artifactName": "${productName}.${ext}"
     },
     "nsis": {
       "oneClick": false,
