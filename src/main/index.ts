@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, powerMonitor } from 'electron'
 import path from 'path'
 import { dataStore } from './storage'
-import { setupIPC, cleanupIPC } from './ipc-handlers'
+import { setupIPC, cleanupIPC, suspendCurrentSession } from './ipc-handlers'
 import { createTray } from './tray'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
@@ -61,7 +61,16 @@ app.whenReady().then(async () => {
   await dataStore.init()
 
   // Close any unfinished sessions from previous run
+  // Uses start_time as end_time, so duration = 0 (no false counting)
   dataStore.closeAllActiveEvents()
+
+  // Listen for system sleep → close active session precisely
+  powerMonitor.on('suspend', () => {
+    suspendCurrentSession()
+  })
+
+  // On resume, WiFiMonitor's polling will auto-detect reconnection
+  // and start a new session. No action needed here.
 
   // Create window (starts hidden)
   await createWindow()
@@ -69,6 +78,8 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+  // Close active session with correct end time before exit
+  suspendCurrentSession()
   cleanupIPC()
 })
 

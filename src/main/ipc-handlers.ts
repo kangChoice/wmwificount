@@ -71,6 +71,15 @@ export function setupIPC(mainWindow: BrowserWindow): void {
 
   function handleWiFiStateChange(state: WiFiState): void {
     if (state.connected) {
+      // If our in-memory session was closed externally (sleep/shutdown), reset
+      if (currentSessionId) {
+        const dbActive = dataStore.getActiveEvent()
+        if (!dbActive || dbActive.id !== currentSessionId) {
+          currentSessionId = null
+          lastSSID = null
+        }
+      }
+
       // Connected — different SSID from before? Close old, start new.
       if (currentSessionId && state.ssid !== lastSSID) {
         dataStore.endEvent(currentSessionId)
@@ -89,6 +98,16 @@ export function setupIPC(mainWindow: BrowserWindow): void {
         lastSSID = null
       }
     }
+  }
+}
+
+/** Call when system is about to suspend — closes active session with precise timestamp */
+export function suspendCurrentSession(): void {
+  // Access the in-memory state through the module scope
+  // We use a direct DB approach since we can't access the closure variables
+  const active = dataStore.getActiveEvent()
+  if (active) {
+    dataStore.endEventAt(active.id, new Date())
   }
 }
 

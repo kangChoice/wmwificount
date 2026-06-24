@@ -126,11 +126,38 @@ export class DataStore {
   }
 
   // Close any open session (for recovery on startup)
+  // When recovering from crash/shutdown, set end_time = start_time so duration = 0.
+  // This avoids counting offline hours (sleep, crash) as WiFi time.
   closeAllActiveEvents(): void {
     const active = this.getActiveEvent()
     if (active) {
-      this.endEvent(active.id)
+      this.db.run(
+        `UPDATE connection_events SET end_time = start_time, duration_seconds = 0 WHERE id = ? AND end_time IS NULL`,
+        [active.id]
+      )
+      this.save()
     }
+  }
+
+  // Close session at a specific point in time (for suspend)
+  endEventAt(eventId: string, endTime: Date): void {
+    const nowISO = endTime.toISOString()
+
+    const result = this.db.exec(
+      `SELECT start_time FROM connection_events WHERE id = ? AND end_time IS NULL`,
+      [eventId]
+    )
+
+    if (result.length === 0 || result[0].values.length === 0) return
+
+    const startTime = new Date(result[0].values[0][0] as string)
+    const durationSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000)
+
+    this.db.run(
+      `UPDATE connection_events SET end_time = ?, duration_seconds = ? WHERE id = ?`,
+      [nowISO, Math.max(0, durationSeconds), eventId]
+    )
+    this.save()
   }
 
   // Get today's total connected time in seconds
