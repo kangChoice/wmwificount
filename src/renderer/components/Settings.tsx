@@ -128,7 +128,7 @@ function Settings({ onRefresh }: Props) {
       <div style={styles.card}>
         <h2 style={styles.sectionTitle}>关于</h2>
         <div style={styles.about}>
-          <p>WiFi Time Tracker v1.0.0</p>
+          <p>WiFi Time Tracker v1.0.1</p>
           <p style={styles.aboutSub}>自动统计电脑连接 WiFi 的时长</p>
           <p style={styles.aboutSub}>数据存储在本地，不会上传</p>
         </div>
