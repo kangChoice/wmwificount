@@ -1,0 +1,83 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'   # 打标签时触发，如 v1.0.0
+
+permissions:
+  contents: write
+
+jobs:
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Build and package
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+        run: |
+          npx electron-vite build
+          npx electron-builder --win
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: wifi-time-tracker-windows
+          path: release/*.exe
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Build and package
+        run: |
+          npx electron-vite build
+          npx electron-builder --mac
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: wifi-time-tracker-macos
+          path: release/*.dmg
+
+  release:
+    needs: [build-win, build-mac]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: WiFi Time Tracker ${{ github.ref_name }}
+          body: |
+            ## WiFi Time Tracker ${{ github.ref_name }}
+
+            📶 自动统计电脑 WiFi 连接时长的小工具。
+
+            ### 下载指南
+
+            **Windows 用户** → 下载 `wifi-time-tracker-windows` 中的 `.exe` 安装包（NSIS 安装程序）
+            **macOS 用户** → 下载 `wifi-time-tracker-macos` 中的 `.dmg` 并安装
+
+            ### 使用说明
+
+            安装后 App 自动在系统托盘后台运行，无需任何操作即可自动记录 WiFi 连接时长。
+            双击托盘 📶 图标可查看统计面板。
+
+            > ⚠️ macOS 首次打开需在"系统设置 → 隐私与安全性"中点击"仍要打开"
+          files: artifacts/**/*
+          draft: true
+          generate_release_notes: true

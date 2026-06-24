@@ -18,15 +18,22 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*"
+      "out/**/*",
+      "resources/icons/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/sql.js/dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
     ],
     "win": {
       "target": "nsis",
-      "icon": "resources/build/icon.ico"
+      "icon": "resources/build/icon.png"
     },
     "mac": {
       "target": "dmg",
-      "icon": "resources/build/icon.icns"
+      "icon": "resources/build/icon.png"
     },
     "nsis": {
       "oneClick": false,

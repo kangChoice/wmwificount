@@ -25,16 +25,18 @@ export class DataStore {
     const userDataPath = app.getPath('userData')
     this.dbPath = path.join(userDataPath, 'wifi-events.db')
 
-    const wasmBinaryPath = path.join(
-      app.getAppPath(),
-      'node_modules',
-      'sql.js',
-      'dist',
-      'sql-wasm.wasm'
-    )
+    // In packaged app, sql-wasm.wasm is in resources dir (via extraResources).
+    // In dev mode, it's under node_modules/sql.js/dist/
+    const isPackaged = app.isPackaged
+    let wasmPath: string
+    if (isPackaged) {
+      wasmPath = path.join(process.resourcesPath, 'sql-wasm.wasm')
+    } else {
+      wasmPath = path.join(app.getAppPath(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
+    }
 
     const SQL = await initSqlJs({
-      locateFile: () => wasmBinaryPath
+      locateFile: () => wasmPath
     })
 
     // Load existing database or create new
