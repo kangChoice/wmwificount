@@ -1,6 +1,6 @@
 {
   "name": "wifi-time-tracker",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "Track how long your computer stays connected to WiFi",
   "main": "out/main/index.js",
   "scripts": {
