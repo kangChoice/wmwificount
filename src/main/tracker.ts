@@ -162,10 +162,15 @@ export class NetworkTracker {
         if (yesterdayPortion > 0) {
           this.finalizeDay(this.todayDate, yesterdayPortion)
         }
-        this.sessionStart = midnight
       }
 
       this.todayDate = today
+      // If we're currently connected, start a new session for today
+      if (this.connected) {
+        this.sessionStart = Date.now()
+      } else {
+        this.sessionStart = null
+      }
       this.save()
     }
 
