@@ -18,8 +18,8 @@ export function setupIPC(): void {
     return tracker.getAllRecords()
   })
 
-  ipcMain.handle('stats:get-warning', (): string => {
-    return tracker.getWorkdayWarning().status
+  ipcMain.handle('stats:get-warning', () => {
+    return tracker.getWorkdayWarning()
   })
 
   ipcMain.handle('settings:get-auto-start', (): boolean => {
@@ -28,6 +28,14 @@ export function setupIPC(): void {
 
   ipcMain.handle('settings:set-auto-start', (_event, enabled: boolean): void => {
     app.setLoginItemSettings({ openAtLogin: enabled })
+  })
+
+  ipcMain.handle('settings:get-warning-config', () => {
+    return tracker.getWarningConfig()
+  })
+
+  ipcMain.handle('settings:set-warning-config', (_event, cfg: { lookbackDays: number; minPassDays: number }) => {
+    tracker.setWarningConfig(cfg)
   })
 }
 

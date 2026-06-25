@@ -16,8 +16,16 @@ interface TrackerData {
 }
 
 const DATA_FILE = 'network-time-data.json'
+const CONFIG_FILE = 'config.json'
 const CHECK_INTERVAL = 10000   // 10s — check network
 const TICK_INTERVAL = 1000     // 1s  — update renderer
+
+export interface WarningConfig {
+  lookbackDays: number   // how many recent workdays to check (default: 2)
+  minPassDays: number    // how many of them need >= 8h to avoid warning (default: 1)
+}
+
+const DEFAULT_CONFIG: WarningConfig = { lookbackDays: 2, minPassDays: 1 }
 
 export class NetworkTracker {
   private connected = false
@@ -26,13 +34,18 @@ export class NetworkTracker {
   private dailyRecords: DailyRecord[] = []
   private todayDate = ''
   private dataPath = ''
+  private configPath = ''
+  private config: WarningConfig = { ...DEFAULT_CONFIG }
   private checkTimer: ReturnType<typeof setInterval> | null = null
   private tickTimer: ReturnType<typeof setInterval> | null = null
   private onTick: ((totalSeconds: number) => void) | null = null
 
   async init(): Promise<void> {
-    this.dataPath = path.join(app.getPath('userData'), DATA_FILE)
+    const userDataPath = app.getPath('userData')
+    this.dataPath = path.join(userDataPath, DATA_FILE)
+    this.configPath = path.join(userDataPath, CONFIG_FILE)
     this.load()
+    this.loadConfig()
 
     // Handle day boundary if we crossed midnight
     const today = this.getTodayStr()
@@ -43,7 +56,6 @@ export class NetworkTracker {
     this.todayDate = today
 
     // If we have an unclosed session from last run, discard it gracefully
-    // (the accumulated time is already in todaySeconds from endSession/save)
     if (this.sessionStart) {
       this.sessionStart = null
       this.save()
@@ -54,6 +66,15 @@ export class NetworkTracker {
 
     // Start periodic checks
     this.checkTimer = setInterval(() => this.checkNow(), CHECK_INTERVAL)
+  }
+
+  getWarningConfig(): WarningConfig {
+    return { ...this.config }
+  }
+
+  setWarningConfig(cfg: WarningConfig): void {
+    this.config = { ...DEFAULT_CONFIG, ...cfg }
+    this.saveConfig()
   }
 
   /** Register a callback that fires every second with the current total */
@@ -104,39 +125,66 @@ export class NetworkTracker {
   }
 
   /**
-   * Check if the last 2 workdays both had < 8 hours of network time.
-   * If so, show a warning that today should exceed 8 hours.
+   * Check recent workdays against configurable thresholds.
+   * If fewer than minPassDays out of lookbackDays have >= 8h, show warning.
    */
-  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data' } {
+  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number } {
     const EIGHT_HOURS = 28800
-    const workdays = this.getLastTwoWorkdays()
-    if (workdays.length < 2) return { status: 'no-data' }
+    const { lookbackDays, minPassDays } = this.config
+    const workdays = this.getRecentWorkdays(lookbackDays)
+    if (workdays.length < lookbackDays) return { status: 'no-data', passCount: 0, lookback: lookbackDays }
 
-    const r1 = this.dailyRecords.find(r => r.date === workdays[0])
-    const r2 = this.dailyRecords.find(r => r.date === workdays[1])
-
-    if (!r1 || !r2) return { status: 'no-data' }
-
-    if (r1.seconds < EIGHT_HOURS && r2.seconds < EIGHT_HOURS) {
-      return { status: 'warning' }
+    // Count how many of these workdays have data AND pass the 8h threshold
+    let passCount = 0
+    let hasMissingData = false
+    for (const d of workdays) {
+      const r = this.dailyRecords.find(r => r.date === d)
+      if (!r) {
+        hasMissingData = true
+        continue
+      }
+      if (r.seconds >= EIGHT_HOURS) passCount++
     }
-    return { status: 'normal' }
+
+    // If any workday has no data at all (fresh install), don't warn
+    if (hasMissingData) return { status: 'no-data', passCount, lookback: lookbackDays }
+
+    if (passCount >= minPassDays) return { status: 'normal', passCount, lookback: lookbackDays }
+    return { status: 'warning', passCount, lookback: lookbackDays }
   }
 
-  /** Find the last 2 weekdays (Mon-Fri) before today, skipping weekends */
-  private getLastTwoWorkdays(): string[] {
+  /** Find the last N weekdays (Mon-Fri) before today, skipping weekends */
+  private getRecentWorkdays(count: number): string[] {
     const result: string[] = []
     let d = new Date()
     let tries = 0
-    while (result.length < 2 && tries < 14) {
+    while (result.length < count && tries < 30) {
       tries++
       d.setDate(d.getDate() - 1)
-      const day = d.getDay()  // 0=Sun, 6=Sat
+      const day = d.getDay()
       if (day !== 0 && day !== 6) {
         result.push(d.toISOString().slice(0, 10))
       }
     }
     return result
+  }
+
+  private loadConfig(): void {
+    try {
+      if (fs.existsSync(this.configPath)) {
+        const raw = fs.readFileSync(this.configPath, 'utf-8')
+        const cfg = JSON.parse(raw)
+        this.config = { ...DEFAULT_CONFIG, ...cfg }
+      }
+    } catch { /* ignore */ }
+  }
+
+  private saveConfig(): void {
+    try {
+      const dir = path.dirname(this.configPath)
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+      fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2))
+    } catch { /* ignore */ }
   }
 
   shutdown(): void {

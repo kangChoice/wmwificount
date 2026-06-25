@@ -10,11 +10,11 @@ function App() {
   const [connected, setConnected] = useState(false)
   const [totalSeconds, setTotalSeconds] = useState(0)
   const [warningStatus, setWarningStatus] = useState<'warning' | 'normal' | 'no-data'>('no-data')
+  const [warningPassCount, setWarningPassCount] = useState(0)
+  const [warningLookback, setWarningLookback] = useState(2)
   const [activeTab, setActiveTab] = useState<Tab>('status')
 
-  // Listen for tick updates from main process (every 1 second)
   useEffect(() => {
-    // Load initial state
     Promise.all([
       window.electronAPI.stats.getConnected(),
       window.electronAPI.stats.getTotal(),
@@ -22,13 +22,17 @@ function App() {
     ]).then(([c, t, w]) => {
       setConnected(c)
       setTotalSeconds(t)
-      setWarningStatus(w)
+      setWarningStatus(w.status)
+      setWarningPassCount(w.passCount)
+      setWarningLookback(w.lookback)
     })
 
     const unsubscribe = window.electronAPI.stats.onTick((data) => {
       setConnected(data.connected)
       setTotalSeconds(data.totalSeconds)
       setWarningStatus(data.warningStatus)
+      setWarningPassCount(data.warningPassCount)
+      setWarningLookback(data.warningLookback)
     })
     return unsubscribe
   }, [])
@@ -52,7 +56,12 @@ function App() {
         {activeTab === 'status' && (
           <>
             <StatusCard connected={connected} />
-            <TodayStats totalSeconds={totalSeconds} warningStatus={warningStatus} />
+            <TodayStats
+              totalSeconds={totalSeconds}
+              warningStatus={warningStatus}
+              warningPassCount={warningPassCount}
+              warningLookback={warningLookback}
+            />
           </>
         )}
         {activeTab === 'history' && <HistoryChart />}
@@ -63,21 +72,11 @@ function App() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    width: '100%', height: '100vh',
-    display: 'flex', flexDirection: 'column',
-    backgroundColor: '#f5f5f7',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    overflow: 'hidden'
-  },
+  container: { width: '100%', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f5f5f7', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', overflow: 'hidden' },
   header: { padding: '16px 20px 8px', borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff' },
   title: { margin: 0, fontSize: '18px', fontWeight: 600, color: '#1d1d1f' },
   tabBar: { display: 'flex', backgroundColor: '#fff', borderBottom: '1px solid #e0e0e0', padding: '0 12px' },
-  tab: {
-    flex: 1, padding: '10px 0', border: 'none', background: 'transparent',
-    cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: '#86868b',
-    borderBottom: '2px solid transparent', transition: 'all 0.2s'
-  },
+  tab: { flex: 1, padding: '10px 0', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: '#86868b', borderBottom: '2px solid transparent', transition: 'all 0.2s' },
   tabActive: { color: '#007aff', borderBottomColor: '#007aff' },
   content: { flex: 1, overflow: 'auto', padding: '16px' }
 }

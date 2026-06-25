@@ -6,9 +6,19 @@ function Settings() {
   const [showRecords, setShowRecords] = useState(false)
   const [autoStart, setAutoStart] = useState(false)
   const [autoStartLoaded, setAutoStartLoaded] = useState(false)
+  const [lookbackDays, setLookbackDays] = useState(2)
+  const [minPassDays, setMinPassDays] = useState(1)
+  const [configLoaded, setConfigLoaded] = useState(false)
+  const [initialConfig, setInitialConfig] = useState({ lookbackDays: 2, minPassDays: 1 })
 
   useEffect(() => {
     window.electronAPI.settings.getAutoStart().then(v => { setAutoStart(v); setAutoStartLoaded(true) }).catch(console.error)
+    window.electronAPI.settings.getWarningConfig().then(cfg => {
+      setLookbackDays(cfg.lookbackDays)
+      setMinPassDays(cfg.minPassDays)
+      setInitialConfig({ lookbackDays: cfg.lookbackDays, minPassDays: cfg.minPassDays })
+      setConfigLoaded(true)
+    }).catch(console.error)
   }, [])
 
   useEffect(() => {
@@ -24,6 +34,16 @@ function Settings() {
     catch { setAutoStart(!newVal) }
   }, [autoStart])
 
+  const handleSaveConfig = useCallback(async () => {
+    const ld = Math.max(1, Math.min(10, lookbackDays))
+    const mp = Math.max(1, Math.min(ld, minPassDays))
+    setLookbackDays(ld)
+    setMinPassDays(mp)
+    try {
+      await window.electronAPI.settings.setWarningConfig({ lookbackDays: ld, minPassDays: mp })
+    } catch { /* ignore */ }
+  }, [lookbackDays, minPassDays])
+
   const handleExport = useCallback(() => {
     window.electronAPI.stats.getAllRecords().then(all => {
       const csv = ['Date,Seconds,Hours', ...all.map(r => `${r.date},${r.seconds},${(r.seconds / 3600).toFixed(1)}`)].join('\n')
@@ -32,10 +52,7 @@ function Settings() {
       const a = document.createElement('a')
       a.href = url
       a.download = `network-time-${new Date().toISOString().slice(0, 10)}.csv`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url)
     })
   }, [])
 
@@ -53,6 +70,38 @@ function Settings() {
             <div style={{ ...styles.toggleKnob, transform: autoStart ? 'translateX(20px)' : 'translateX(0)' }} />
           </button>
         </div>
+      </div>
+
+      <div style={styles.card}>
+        <h2 style={styles.sectionTitle}>工作时长提醒</h2>
+
+        <div style={styles.configRow}>
+          <div style={styles.configLabel}>检查最近</div>
+          <div style={styles.configControl}>
+            <button style={styles.configBtn} onClick={() => setLookbackDays(Math.max(1, lookbackDays - 1))} disabled={!configLoaded}>−</button>
+            <span style={styles.configValue}>{lookbackDays} 个工作日</span>
+            <button style={styles.configBtn} onClick={() => setLookbackDays(Math.min(10, lookbackDays + 1))} disabled={!configLoaded}>+</button>
+          </div>
+        </div>
+
+        <div style={styles.configRow}>
+          <div style={styles.configLabel}>至少达标</div>
+          <div style={styles.configControl}>
+            <button style={styles.configBtn} onClick={() => setMinPassDays(Math.max(1, minPassDays - 1))} disabled={!configLoaded}>−</button>
+            <span style={styles.configValue}>{minPassDays} 天</span>
+            <button style={styles.configBtn} onClick={() => setMinPassDays(Math.min(lookbackDays, minPassDays + 1))} disabled={!configLoaded}>+</button>
+          </div>
+        </div>
+
+        <div style={styles.configHint}>
+          近{lookbackDays}个工作日中少于{minPassDays}天超过8小时则触发提醒
+        </div>
+
+        {configLoaded && (lookbackDays !== initialConfig.lookbackDays || minPassDays !== initialConfig.minPassDays) && (
+          <button style={{ ...styles.button, marginTop: '10px', textAlign: 'center' as const }} onClick={handleSaveConfig}>
+            💾 保存设置
+          </button>
+        )}
       </div>
 
       <div style={styles.card}>
@@ -87,6 +136,7 @@ function Settings() {
           <p>Network Time Tracker</p>
           <p style={styles.aboutSub}>自动统计电脑联网时长</p>
           <p style={styles.aboutSub}>数据存储在本地，不会上传</p>
+          <p style={styles.aboutSub}>工作日11:30和18:00桌面弹窗提醒</p>
         </div>
       </div>
     </div>
@@ -101,6 +151,12 @@ const styles: Record<string, React.CSSProperties> = {
   toggleHint: { fontSize: '11px', color: '#86868b', marginTop: '2px' },
   toggleSwitch: { width: '44px', height: '24px', borderRadius: '12px', border: 'none', cursor: 'pointer', position: 'relative' as const, transition: 'background-color 0.2s', padding: 0, flexShrink: 0 },
   toggleKnob: { width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.2)', position: 'absolute' as const, top: '2px', left: '2px', transition: 'transform 0.2s' },
+  configRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' },
+  configLabel: { fontSize: '13px', color: '#1d1d1f', fontWeight: 500 },
+  configControl: { display: 'flex', alignItems: 'center', gap: '8px' },
+  configBtn: { width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #d0d0d0', backgroundColor: '#f5f5f7', cursor: 'pointer', fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  configValue: { fontSize: '13px', fontWeight: 600, color: '#1d1d1f', minWidth: '70px', textAlign: 'center' as const },
+  configHint: { fontSize: '11px', color: '#86868b', marginTop: '8px' },
   button: { width: '100%', padding: '10px 16px', backgroundColor: '#f5f5f7', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: '#1d1d1f', textAlign: 'left' as const },
   buttonActive: { backgroundColor: '#e8e8ed' },
   hint: { fontSize: '11px', color: '#86868b', marginTop: '6px' },
