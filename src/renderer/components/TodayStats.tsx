@@ -3,17 +3,22 @@ import { formatDuration } from '../lib/api'
 
 interface Props {
   totalSeconds: number
-  warning: boolean
+  warningStatus: 'warning' | 'normal' | 'no-data'
 }
 
-function TodayStats({ totalSeconds, warning }: Props) {
+function TodayStats({ totalSeconds, warningStatus }: Props) {
   const dayPercent = Math.min(100, Math.round((totalSeconds / 86400) * 100))
 
   return (
     <div>
-      {warning && (
+      {warningStatus === 'warning' && (
         <div style={styles.warning}>
           ⚠️ 前两天联网时长均不足8小时，今天建议超过8小时
+        </div>
+      )}
+      {warningStatus === 'normal' && (
+        <div style={styles.normal}>
+          ✅ 前两天联网情况正常
         </div>
       )}
       <div style={styles.card}>
@@ -46,6 +51,17 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '13px',
     fontWeight: 500,
     color: '#856404',
+    lineHeight: 1.5
+  },
+  normal: {
+    backgroundColor: '#e8f5e9',
+    border: '1px solid #4caf50',
+    borderRadius: '12px',
+    padding: '12px 16px',
+    marginBottom: '12px',
+    fontSize: '13px',
+    fontWeight: 500,
+    color: '#2e7d32',
     lineHeight: 1.5
   },
   card: {

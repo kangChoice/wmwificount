@@ -8,8 +8,8 @@ declare global {
         getConnected: () => Promise<boolean>
         getDaily: (days: number) => Promise<{ date: string; seconds: number }[]>
         getAllRecords: () => Promise<{ date: string; seconds: number }[]>
-        getWarning: () => Promise<boolean>
-        onTick: (callback: (data: { connected: boolean; totalSeconds: number; warning: boolean }) => void) => () => void
+        getWarning: () => Promise<'warning' | 'normal' | 'no-data'>
+        onTick: (callback: (data: { connected: boolean; totalSeconds: number; warningStatus: 'warning' | 'normal' | 'no-data' }) => void) => () => void
       }
       settings: {
         getAutoStart: () => Promise<boolean>

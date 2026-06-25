@@ -70,7 +70,7 @@ async function createWindow(): Promise<void> {
           mainWindow.webContents.send('stats:tick', {
             connected: tracker.getIsConnected(),
             totalSeconds,
-            warning: tracker.getWorkdayWarning().show
+            warningStatus: tracker.getWorkdayWarning().status
           })
         }
       } catch { /* ignore */ }

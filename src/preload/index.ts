@@ -7,7 +7,7 @@ const api = {
     getDaily: (days: number) => ipcRenderer.invoke('stats:get-daily', days),
     getAllRecords: () => ipcRenderer.invoke('stats:get-all-records'),
     getWarning: () => ipcRenderer.invoke('stats:get-warning'),
-    onTick: (callback: (data: { connected: boolean; totalSeconds: number; warning: boolean }) => void) => {
+    onTick: (callback: (data: { connected: boolean; totalSeconds: number; warningStatus: 'warning' | 'normal' | 'no-data' }) => void) => {
       const handler = (_event: any, data: any) => callback(data)
       ipcRenderer.on('stats:tick', handler)
       return () => { ipcRenderer.removeListener('stats:tick', handler) }

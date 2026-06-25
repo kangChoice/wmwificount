@@ -9,7 +9,7 @@ type Tab = 'status' | 'history' | 'settings'
 function App() {
   const [connected, setConnected] = useState(false)
   const [totalSeconds, setTotalSeconds] = useState(0)
-  const [warning, setWarning] = useState(false)
+  const [warningStatus, setWarningStatus] = useState<'warning' | 'normal' | 'no-data'>('no-data')
   const [activeTab, setActiveTab] = useState<Tab>('status')
 
   // Listen for tick updates from main process (every 1 second)
@@ -22,13 +22,13 @@ function App() {
     ]).then(([c, t, w]) => {
       setConnected(c)
       setTotalSeconds(t)
-      setWarning(w)
+      setWarningStatus(w)
     })
 
     const unsubscribe = window.electronAPI.stats.onTick((data) => {
       setConnected(data.connected)
       setTotalSeconds(data.totalSeconds)
-      setWarning(data.warning)
+      setWarningStatus(data.warningStatus)
     })
     return unsubscribe
   }, [])
@@ -52,7 +52,7 @@ function App() {
         {activeTab === 'status' && (
           <>
             <StatusCard connected={connected} />
-            <TodayStats totalSeconds={totalSeconds} warning={warning} />
+            <TodayStats totalSeconds={totalSeconds} warningStatus={warningStatus} />
           </>
         )}
         {activeTab === 'history' && <HistoryChart />}

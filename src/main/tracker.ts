@@ -107,19 +107,20 @@ export class NetworkTracker {
    * Check if the last 2 workdays both had < 8 hours of network time.
    * If so, show a warning that today should exceed 8 hours.
    */
-  getWorkdayWarning(): { show: boolean } {
+  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data' } {
     const EIGHT_HOURS = 28800
     const workdays = this.getLastTwoWorkdays()
-    if (workdays.length < 2) return { show: false }
+    if (workdays.length < 2) return { status: 'no-data' }
 
     const r1 = this.dailyRecords.find(r => r.date === workdays[0])
     const r2 = this.dailyRecords.find(r => r.date === workdays[1])
 
-    // Only warn if both workdays have data AND both are < 8 hours
-    // No data = new install / not tracked yet → don't warn
-    if (!r1 || !r2) return { show: false }
+    if (!r1 || !r2) return { status: 'no-data' }
 
-    return { show: r1.seconds < EIGHT_HOURS && r2.seconds < EIGHT_HOURS }
+    if (r1.seconds < EIGHT_HOURS && r2.seconds < EIGHT_HOURS) {
+      return { status: 'warning' }
+    }
+    return { status: 'normal' }
   }
 
   /** Find the last 2 weekdays (Mon-Fri) before today, skipping weekends */
