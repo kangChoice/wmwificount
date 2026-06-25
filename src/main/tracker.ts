@@ -39,6 +39,7 @@ export class NetworkTracker {
   private checkTimer: ReturnType<typeof setInterval> | null = null
   private tickTimer: ReturnType<typeof setInterval> | null = null
   private onTick: ((totalSeconds: number) => void) | null = null
+  private isWorkdayFn: ((date: Date) => boolean) | null = null
 
   async init(): Promise<void> {
     const userDataPath = app.getPath('userData')
@@ -46,6 +47,14 @@ export class NetworkTracker {
     this.configPath = path.join(userDataPath, CONFIG_FILE)
     this.load()
     this.loadConfig()
+
+    // Pre-load chinese-workday ESM module
+    try {
+      const mod = await import('chinese-workday')
+      this.isWorkdayFn = mod.isWorkday
+    } catch {
+      this.isWorkdayFn = null
+    }
 
     // Handle day boundary if we crossed midnight
     const today = this.getTodayStr()
@@ -110,6 +119,12 @@ export class NetworkTracker {
     return this.connected
   }
 
+  /** Check if today is a real workday (holiday-aware) */
+  isTodayWorkday(): boolean {
+    const fn = this.isWorkdayFn || ((d: Date) => d.getDay() !== 0 && d.getDay() !== 6)
+    return fn(new Date())
+  }
+
   getDailyRecords(days: number): DailyRecord[] {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
@@ -155,15 +170,13 @@ export class NetworkTracker {
 
   /** Find the last N workdays before today, using real Chinese holiday calendar */
   private getRecentWorkdays(count: number): string[] {
-    const { isWorkday } = require('chinese-workday')
+    const isWorkday = this.isWorkdayFn || ((d: Date) => d.getDay() !== 0 && d.getDay() !== 6)
     const result: string[] = []
     let d = new Date()
     let tries = 0
     while (result.length < count && tries < 60) {
       tries++
       d.setDate(d.getDate() - 1)
-      // isWorkday() returns true for Mon-Fri (not holiday) AND 调休上班日
-      // Returns false for weekends, 法定节假日, and 调休放假
       if (isWorkday(d)) {
         result.push(d.toISOString().slice(0, 10))
       }

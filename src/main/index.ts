@@ -98,9 +98,8 @@ function resetNotificationsDaily(): void {
 
 function checkScheduledNotifications(): void {
   const now = new Date()
-  const { isWorkday } = require('chinese-workday')
-  // Only on real workdays (holiday-aware, handles 调休)
-  if (!isWorkday(now)) return
+  // Use tracker's cached isWorkday function (loaded at startup via dynamic import)
+  if (!tracker.isTodayWorkday()) return
 
   const h = now.getHours()
   const m = now.getMinutes()
