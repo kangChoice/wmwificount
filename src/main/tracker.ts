@@ -112,10 +112,14 @@ export class NetworkTracker {
     const workdays = this.getLastTwoWorkdays()
     if (workdays.length < 2) return { show: false }
 
-    const s1 = this.getRecordSeconds(workdays[0])
-    const s2 = this.getRecordSeconds(workdays[1])
+    const r1 = this.dailyRecords.find(r => r.date === workdays[0])
+    const r2 = this.dailyRecords.find(r => r.date === workdays[1])
 
-    return { show: s1 < EIGHT_HOURS && s2 < EIGHT_HOURS }
+    // Only warn if both workdays have data AND both are < 8 hours
+    // No data = new install / not tracked yet → don't warn
+    if (!r1 || !r2) return { show: false }
+
+    return { show: r1.seconds < EIGHT_HOURS && r2.seconds < EIGHT_HOURS }
   }
 
   /** Find the last 2 weekdays (Mon-Fri) before today, skipping weekends */
@@ -132,12 +136,6 @@ export class NetworkTracker {
       }
     }
     return result
-  }
-
-  /** Lookup seconds for a date string from dailyRecords */
-  private getRecordSeconds(dateStr: string): number {
-    const r = this.dailyRecords.find(r => r.date === dateStr)
-    return r ? r.seconds : 0
   }
 
   shutdown(): void {
