@@ -212,7 +212,7 @@ export class NetworkTracker {
   getDailyRecords(days: number): DailyRecord[] {
     const cutoff = new Date()
     cutoff.setDate(cutoff.getDate() - days)
-    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const cutoffStr = this.localDateStr(cutoff)
     return this.dailyRecords
       .filter(r => r.date >= cutoffStr)
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -262,7 +262,7 @@ export class NetworkTracker {
       tries++
       d.setDate(d.getDate() - 1)
       if (isWorkday(d)) {
-        result.push(d.toISOString().slice(0, 10))
+        result.push(this.localDateStr(d))
       }
     }
     return result
@@ -337,8 +337,15 @@ export class NetworkTracker {
     this.save()
   }
 
+  private localDateStr(d: Date): string {
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   private getTodayStr(): string {
-    return new Date().toISOString().slice(0, 10)
+    return this.localDateStr(new Date())
   }
 
   private finalizeDay(date: string, seconds: number): void {
@@ -352,7 +359,7 @@ export class NetworkTracker {
     // Keep only last 365 days
     const cutoff = new Date()
     cutoff.setFullYear(cutoff.getFullYear() - 1)
-    const cutoffStr = cutoff.toISOString().slice(0, 10)
+    const cutoffStr = this.localDateStr(cutoff)
     this.dailyRecords = this.dailyRecords.filter(r => r.date >= cutoffStr)
   }
 
