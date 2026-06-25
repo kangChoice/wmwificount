@@ -21,11 +21,23 @@ const CHECK_INTERVAL = 10000   // 10s — check network
 const TICK_INTERVAL = 1000     // 1s  — update renderer
 
 export interface WarningConfig {
-  lookbackDays: number   // how many recent workdays to check (default: 2)
-  minPassDays: number    // how many of them need >= 8h to avoid warning (default: 1)
+  lookbackDays: number
+  minPassDays: number
 }
 
-const DEFAULT_CONFIG: WarningConfig = { lookbackDays: 2, minPassDays: 1 }
+export interface AppConfig {
+  lookbackDays: number
+  minPassDays: number
+  notifyTime1: string   // "HH:MM" e.g. "11:30"
+  notifyTime2: string   // "HH:MM" e.g. "18:00"
+}
+
+const DEFAULT_APP_CONFIG: AppConfig = {
+  lookbackDays: 2,
+  minPassDays: 1,
+  notifyTime1: '11:30',
+  notifyTime2: '18:00'
+}
 
 export class NetworkTracker {
   private connected = false
@@ -35,7 +47,7 @@ export class NetworkTracker {
   private todayDate = ''
   private dataPath = ''
   private configPath = ''
-  private config: WarningConfig = { ...DEFAULT_CONFIG }
+  private config: AppConfig = { ...DEFAULT_APP_CONFIG }
   private checkTimer: ReturnType<typeof setInterval> | null = null
   private tickTimer: ReturnType<typeof setInterval> | null = null
   private onTick: ((totalSeconds: number) => void) | null = null
@@ -78,12 +90,26 @@ export class NetworkTracker {
   }
 
   getWarningConfig(): WarningConfig {
-    return { ...this.config }
+    return { lookbackDays: this.config.lookbackDays, minPassDays: this.config.minPassDays }
   }
 
   setWarningConfig(cfg: WarningConfig): void {
-    this.config = { ...DEFAULT_CONFIG, ...cfg }
+    this.config.lookbackDays = cfg.lookbackDays
+    this.config.minPassDays = cfg.minPassDays
     this.saveConfig()
+  }
+
+  getAppConfig(): AppConfig {
+    return { ...this.config }
+  }
+
+  setAppConfig(cfg: Partial<AppConfig>): void {
+    this.config = { ...DEFAULT_APP_CONFIG, ...this.config, ...cfg }
+    this.saveConfig()
+  }
+
+  getNotifyTimes(): { time1: string; time2: string } {
+    return { time1: this.config.notifyTime1, time2: this.config.notifyTime2 }
   }
 
   /** Register a callback that fires every second with the current total */
@@ -189,7 +215,7 @@ export class NetworkTracker {
       if (fs.existsSync(this.configPath)) {
         const raw = fs.readFileSync(this.configPath, 'utf-8')
         const cfg = JSON.parse(raw)
-        this.config = { ...DEFAULT_CONFIG, ...cfg }
+        this.config = { ...DEFAULT_APP_CONFIG, ...cfg }
       }
     } catch { /* ignore */ }
   }

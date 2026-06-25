@@ -8,15 +8,19 @@ function Settings() {
   const [autoStartLoaded, setAutoStartLoaded] = useState(false)
   const [lookbackDays, setLookbackDays] = useState(2)
   const [minPassDays, setMinPassDays] = useState(1)
+  const [notifyTime1, setNotifyTime1] = useState('11:30')
+  const [notifyTime2, setNotifyTime2] = useState('18:00')
   const [configLoaded, setConfigLoaded] = useState(false)
-  const [initialConfig, setInitialConfig] = useState({ lookbackDays: 2, minPassDays: 1 })
+  const [initialConfig, setInitialConfig] = useState({ lookbackDays: 2, minPassDays: 1, notifyTime1: '11:30', notifyTime2: '18:00' })
 
   useEffect(() => {
     window.electronAPI.settings.getAutoStart().then(v => { setAutoStart(v); setAutoStartLoaded(true) }).catch(console.error)
-    window.electronAPI.settings.getWarningConfig().then(cfg => {
+    window.electronAPI.settings.getAppConfig().then(cfg => {
       setLookbackDays(cfg.lookbackDays)
       setMinPassDays(cfg.minPassDays)
-      setInitialConfig({ lookbackDays: cfg.lookbackDays, minPassDays: cfg.minPassDays })
+      setNotifyTime1(cfg.notifyTime1)
+      setNotifyTime2(cfg.notifyTime2)
+      setInitialConfig({ lookbackDays: cfg.lookbackDays, minPassDays: cfg.minPassDays, notifyTime1: cfg.notifyTime1, notifyTime2: cfg.notifyTime2 })
       setConfigLoaded(true)
     }).catch(console.error)
   }, [])
@@ -40,9 +44,10 @@ function Settings() {
     setLookbackDays(ld)
     setMinPassDays(mp)
     try {
-      await window.electronAPI.settings.setWarningConfig({ lookbackDays: ld, minPassDays: mp })
+      await window.electronAPI.settings.setAppConfig({ lookbackDays: ld, minPassDays: mp, notifyTime1, notifyTime2 })
+      setInitialConfig({ lookbackDays: ld, minPassDays: mp, notifyTime1, notifyTime2 })
     } catch { /* ignore */ }
-  }, [lookbackDays, minPassDays])
+  }, [lookbackDays, minPassDays, notifyTime1, notifyTime2])
 
   const handleTestNotification = useCallback((type: 'warning' | 'normal') => {
     window.electronAPI.settings.testNotification(type).catch(console.error)
@@ -95,6 +100,20 @@ function Settings() {
             <span style={styles.configValue}>{minPassDays} 天</span>
             <button style={styles.configBtn} onClick={() => setMinPassDays(Math.min(lookbackDays, minPassDays + 1))} disabled={!configLoaded}>+</button>
           </div>
+        </div>
+
+        <div style={styles.configRow}>
+          <div style={styles.configLabel}>提醒时间 ①</div>
+          <input type="time" value={notifyTime1}
+            onChange={e => setNotifyTime1(e.target.value)}
+            style={styles.timeInput} disabled={!configLoaded} />
+        </div>
+
+        <div style={styles.configRow}>
+          <div style={styles.configLabel}>提醒时间 ②</div>
+          <input type="time" value={notifyTime2}
+            onChange={e => setNotifyTime2(e.target.value)}
+            style={styles.timeInput} disabled={!configLoaded} />
         </div>
 
         <div style={styles.configHint}>
@@ -169,6 +188,7 @@ const styles: Record<string, React.CSSProperties> = {
   configBtn: { width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #d0d0d0', backgroundColor: '#f5f5f7', cursor: 'pointer', fontSize: '16px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' },
   configValue: { fontSize: '13px', fontWeight: 600, color: '#1d1d1f', minWidth: '70px', textAlign: 'center' as const },
   configHint: { fontSize: '11px', color: '#86868b', marginTop: '8px' },
+  timeInput: { fontSize: '13px', padding: '4px 8px', border: '1px solid #d0d0d0', borderRadius: '6px', backgroundColor: '#f5f5f7', color: '#1d1d1f', fontFamily: 'inherit' },
   button: { width: '100%', padding: '10px 16px', backgroundColor: '#f5f5f7', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: '#1d1d1f', textAlign: 'left' as const },
   buttonActive: { backgroundColor: '#e8e8ed' },
   hint: { fontSize: '11px', color: '#86868b', marginTop: '6px' },

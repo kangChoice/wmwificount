@@ -81,60 +81,43 @@ async function createWindow(): Promise<void> {
   }
 }
 
-// Track which notifications we've already sent today to avoid duplicates
-let notified1130 = false
-let notified1800 = false
-
-function resetNotificationsDaily(): void {
-  const now = new Date()
-  const h = now.getHours()
-  const m = now.getMinutes()
-  // Reset at midnight (0:00-0:01)
-  if (h === 0 && m === 0) {
-    notified1130 = false
-    notified1800 = false
-  }
-}
+// Track which notification slots have been sent today
+const notifiedToday: Set<string> = new Set()
 
 function checkScheduledNotifications(): void {
   const now = new Date()
   if (!tracker.isTodayWorkday()) return
 
-  const h = now.getHours()
-  const m = now.getMinutes()
-  const totalMin = h * 60 + m
-
+  const totalMin = now.getHours() * 60 + now.getMinutes()
   const warning = tracker.getWorkdayWarning()
+  const times = tracker.getNotifyTimes()
 
-  // 11:30 notification (±1 min window to avoid missing)
-  if (totalMin >= 689 && totalMin <= 691 && !notified1130) {
-    notified1130 = true
-    if (warning.status === 'warning') {
-      new Notification({
-        title: '⚠️ 联网时长提醒',
-        body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`,
-      }).show()
+  for (const key of [times.time1, times.time2]) {
+    if (notifiedToday.has(key)) continue
+    const [h, m] = key.split(':').map(Number)
+    const targetMin = h * 60 + m
+    // ±1 min window
+    if (totalMin >= targetMin - 1 && totalMin <= targetMin + 1) {
+      notifiedToday.add(key)
+      if (warning.status === 'warning') {
+        new Notification({
+          title: '⚠️ 联网时长提醒',
+          body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`,
+        }).show()
+      }
     }
   }
 
-  // 18:00 notification (±1 min window)
-  if (totalMin >= 1079 && totalMin <= 1081 && !notified1800) {
-    notified1800 = true
-    if (warning.status === 'warning') {
-      new Notification({
-        title: '⚠️ 联网时长提醒',
-        body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`,
-      }).show()
-    }
+  // Reset at midnight
+  if (now.getHours() === 0 && now.getMinutes() === 0) {
+    notifiedToday.clear()
   }
 }
 
 app.whenReady().then(async () => {
   await tracker.init()
 
-  // Check scheduled notifications every 30 seconds
   setInterval(() => {
-    resetNotificationsDaily()
     checkScheduledNotifications()
   }, 30000)
 

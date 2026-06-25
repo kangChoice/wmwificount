@@ -47,6 +47,14 @@ export function setupIPC(): void {
         : `最近${warning.lookback}个工作日均已达8小时，状态正常`,
     }).show()
   })
+
+  ipcMain.handle('settings:get-app-config', () => {
+    return tracker.getAppConfig()
+  })
+
+  ipcMain.handle('settings:set-app-config', (_event, cfg: any) => {
+    tracker.setAppConfig(cfg)
+  })
 }
 
 export function cleanupIPC(): void {
