@@ -136,7 +136,7 @@ function Settings() {
           <p>Network Time Tracker</p>
           <p style={styles.aboutSub}>自动统计电脑联网时长</p>
           <p style={styles.aboutSub}>数据存储在本地，不会上传</p>
-          <p style={styles.aboutSub}>工作日11:30和18:00桌面弹窗提醒</p>
+          <p style={styles.aboutSub}>法定工作日11:30和18:00桌面弹窗提醒</p>
         </div>
       </div>
     </div>

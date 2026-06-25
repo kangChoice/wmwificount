@@ -153,16 +153,18 @@ export class NetworkTracker {
     return { status: 'warning', passCount, lookback: lookbackDays }
   }
 
-  /** Find the last N weekdays (Mon-Fri) before today, skipping weekends */
+  /** Find the last N workdays before today, using real Chinese holiday calendar */
   private getRecentWorkdays(count: number): string[] {
+    const { isWorkday } = require('chinese-workday')
     const result: string[] = []
     let d = new Date()
     let tries = 0
-    while (result.length < count && tries < 30) {
+    while (result.length < count && tries < 60) {
       tries++
       d.setDate(d.getDate() - 1)
-      const day = d.getDay()
-      if (day !== 0 && day !== 6) {
+      // isWorkday() returns true for Mon-Fri (not holiday) AND 调休上班日
+      // Returns false for weekends, 法定节假日, and 调休放假
+      if (isWorkday(d)) {
         result.push(d.toISOString().slice(0, 10))
       }
     }
