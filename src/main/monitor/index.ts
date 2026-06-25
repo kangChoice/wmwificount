@@ -1,5 +1,5 @@
 import { NetworkState } from './types'
-import { checkNetwork } from './ping'
+import { checkNetwork } from './connectivity'
 
 export type NetworkEventCallback = (state: NetworkState, prevState: NetworkState | null) => void
 
