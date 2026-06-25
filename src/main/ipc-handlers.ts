@@ -27,9 +27,13 @@ export function getMonitor(): NetworkMonitor | null {
 
 export function setupIPC(mainWindow: BrowserWindow): void {
   monitor = new NetworkMonitor((state: NetworkState) => {
+    // Always handle state change for session tracking
+    // (don't gate on window existence — session tracking should always work)
+    handleNetworkStateChange(state)
+
+    // Notify the renderer if it's available
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('wifi:state-change', state)
-      handleNetworkStateChange(state)
     }
   })
 
@@ -52,8 +56,17 @@ export function setupIPC(mainWindow: BrowserWindow): void {
     return monitor.getCurrentState()
   })
 
-  ipcMain.handle('wifi:get-active-event', (): ConnectionEvent | null => {
-    return dataStore.getActiveEvent()
+  ipcMain.handle('wifi:get-active-event', async (): Promise<ConnectionEvent | null> => {
+    let event = dataStore.getActiveEvent()
+    // Fallback: if there's no active event but we're connected, create one now
+    if (!event && monitor) {
+      const state = await monitor.getCurrentState()
+      if (state.connected) {
+        event = dataStore.startEvent()
+        currentSessionId = event.id
+      }
+    }
+    return event
   })
 
   ipcMain.handle('stats:get-today-total', (): number => {
