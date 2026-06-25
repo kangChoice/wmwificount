@@ -10,6 +10,7 @@ function Settings() {
   const [minPassDays, setMinPassDays] = useState(1)
   const [notificationsEnabled, setNotificationsEnabled] = useState(true)
   const [notifyTimes, setNotifyTimes] = useState<string[]>(['11:30', '18:00'])
+  const [passThresholdHours, setPassThresholdHours] = useState(8)
   const [configLoaded, setConfigLoaded] = useState(false)
   const [initialConfig, setInitialConfig] = useState<any>(null)
 
@@ -20,6 +21,7 @@ function Settings() {
       setMinPassDays(cfg.minPassDays)
       setNotificationsEnabled(cfg.notificationsEnabled)
       setNotifyTimes(cfg.notifyTimes)
+      setPassThresholdHours(cfg.passThresholdHours || 8)
       setInitialConfig(cfg)
       setConfigLoaded(true)
     }).catch(console.error)
@@ -42,7 +44,7 @@ function Settings() {
     const ld = Math.max(1, Math.min(10, lookbackDays))
     const mp = Math.max(1, Math.min(ld, minPassDays))
     setLookbackDays(ld); setMinPassDays(mp)
-    const cfg = { lookbackDays: ld, minPassDays: mp, notificationsEnabled, notifyTimes }
+    const cfg = { lookbackDays: ld, minPassDays: mp, notificationsEnabled, notifyTimes, passThresholdHours }
     try {
       await window.electronAPI.settings.setAppConfig(cfg)
       setInitialConfig(cfg)
@@ -84,7 +86,8 @@ function Settings() {
     lookbackDays !== initialConfig?.lookbackDays ||
     minPassDays !== initialConfig?.minPassDays ||
     notificationsEnabled !== initialConfig?.notificationsEnabled ||
-    JSON.stringify(notifyTimes) !== JSON.stringify(initialConfig?.notifyTimes)
+    JSON.stringify(notifyTimes) !== JSON.stringify(initialConfig?.notifyTimes) ||
+    passThresholdHours !== initialConfig?.passThresholdHours
   )
 
   return (
@@ -137,6 +140,15 @@ function Settings() {
               </div>
             </div>
 
+            <div style={styles.configRow}>
+              <div style={styles.configLabel}>达标阈值</div>
+              <div style={styles.configControl}>
+                <button style={styles.configBtn} onClick={() => setPassThresholdHours(Math.max(1, passThresholdHours - 1))} disabled={!configLoaded}>−</button>
+                <span style={styles.configValue}>{passThresholdHours} 小时</span>
+                <button style={styles.configBtn} onClick={() => setPassThresholdHours(Math.min(24, passThresholdHours + 1))} disabled={!configLoaded}>+</button>
+              </div>
+            </div>
+
             <div style={{ ...styles.sectionTitle, fontSize: '13px', marginBottom: '8px' }}>提醒时间</div>
             {notifyTimes.map((t, i) => (
               <div key={i} style={styles.configRow}>
@@ -155,7 +167,7 @@ function Settings() {
             )}
 
             <div style={styles.configHint}>
-              近{lookbackDays}个工作日中少于{minPassDays}天超过8小时则触发提醒
+              近{lookbackDays}个工作日中少于{minPassDays}天超过{passThresholdHours}小时则触发提醒
             </div>
           </>
         )}

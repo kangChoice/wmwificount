@@ -16,6 +16,11 @@ function HistoryChart() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth())
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear())
   const [dayInfo, setDayInfo] = useState<Map<string, { isWorkday: boolean; seconds: number }>>(new Map())
+  const [thresholdSeconds, setThresholdSeconds] = useState(thresholdSeconds)
+
+  useEffect(() => {
+    window.electronAPI.stats.getThreshold().then(setThresholdSeconds).catch(console.error)
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -87,9 +92,9 @@ function HistoryChart() {
     if (info) {
       if (!info.isWorkday && info.seconds === 0) {
         // Holiday with no data — keep neutral
-      } else if (info.isWorkday && info.seconds >= 28800) {
+      } else if (info.isWorkday && info.seconds >= thresholdSeconds) {
         bgColor = '#e8f5e9'; textColor = '#2e7d32'  // green: workday >= 8h
-      } else if (info.isWorkday && info.seconds > 0 && info.seconds < 28800) {
+      } else if (info.isWorkday && info.seconds > 0 && info.seconds < thresholdSeconds) {
         bgColor = '#fff3cd'; textColor = '#856404'  // yellow: workday < 8h
       } else if (info.isWorkday && info.seconds === 0) {
         bgColor = '#ffebee'; textColor = '#c62828'  // red: workday no data
@@ -104,7 +109,7 @@ function HistoryChart() {
       }}>
         <div style={{ ...styles.calDayNum, color: textColor }}>{d}</div>
         {info && info.isWorkday && (
-          <div style={{ ...styles.calDayBar, backgroundColor: info.seconds >= 28800 ? '#4caf50' : info.seconds > 0 ? '#ffc107' : '#ef5350' }} />
+          <div style={{ ...styles.calDayBar, backgroundColor: info.seconds >= thresholdSeconds ? '#4caf50' : info.seconds > 0 ? '#ffc107' : '#ef5350' }} />
         )}
       </div>
     )

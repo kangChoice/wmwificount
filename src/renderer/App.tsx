@@ -12,6 +12,7 @@ function App() {
   const [warningStatus, setWarningStatus] = useState<'warning' | 'normal' | 'no-data'>('no-data')
   const [warningPassCount, setWarningPassCount] = useState(0)
   const [warningLookback, setWarningLookback] = useState(2)
+  const [warningThresholdHours, setWarningThresholdHours] = useState(8)
   const [activeTab, setActiveTab] = useState<Tab>('status')
 
   useEffect(() => {
@@ -25,6 +26,7 @@ function App() {
       setWarningStatus(w.status)
       setWarningPassCount(w.passCount)
       setWarningLookback(w.lookback)
+      setWarningThresholdHours(w.thresholdHours)
     })
 
     const unsubscribe = window.electronAPI.stats.onTick((data) => {
@@ -33,6 +35,7 @@ function App() {
       setWarningStatus(data.warningStatus)
       setWarningPassCount(data.warningPassCount)
       setWarningLookback(data.warningLookback)
+      setWarningThresholdHours(data.warningThresholdHours)
     })
     return unsubscribe
   }, [])
@@ -61,6 +64,7 @@ function App() {
               warningStatus={warningStatus}
               warningPassCount={warningPassCount}
               warningLookback={warningLookback}
+              warningThresholdHours={warningThresholdHours}
             />
           </>
         )}

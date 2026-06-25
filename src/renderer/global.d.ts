@@ -8,13 +8,15 @@ declare global {
         getConnected: () => Promise<boolean>
         getDaily: (days: number) => Promise<{ date: string; seconds: number }[]>
         getAllRecords: () => Promise<{ date: string; seconds: number }[]>
-        getWarning: () => Promise<{ status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number }>
+        getWarning: () => Promise<{ status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number; thresholdHours: number }>
+        getThreshold: () => Promise<number>
         onTick: (callback: (data: {
           connected: boolean
           totalSeconds: number
           warningStatus: 'warning' | 'normal' | 'no-data'
           warningPassCount: number
           warningLookback: number
+          warningThresholdHours: number
         }) => void) => () => void
       }
       settings: {
@@ -23,7 +25,7 @@ declare global {
         getWarningConfig: () => Promise<{ lookbackDays: number; minPassDays: number }>
         setWarningConfig: (cfg: { lookbackDays: number; minPassDays: number }) => Promise<void>
         testNotification: (type: 'warning' | 'normal') => Promise<void>
-        getAppConfig: () => Promise<{ lookbackDays: number; minPassDays: number; notificationsEnabled: boolean; notifyTimes: string[] }>
+        getAppConfig: () => Promise<{ lookbackDays: number; minPassDays: number; notificationsEnabled: boolean; notifyTimes: string[]; passThresholdHours: number }>
         setAppConfig: (cfg: any) => Promise<void>
       }
       calendar: {

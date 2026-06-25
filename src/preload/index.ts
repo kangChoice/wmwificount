@@ -7,12 +7,14 @@ const api = {
     getDaily: (days: number) => ipcRenderer.invoke('stats:get-daily', days),
     getAllRecords: () => ipcRenderer.invoke('stats:get-all-records'),
     getWarning: () => ipcRenderer.invoke('stats:get-warning'),
+    getThreshold: () => ipcRenderer.invoke('stats:get-threshold'),
     onTick: (callback: (data: {
       connected: boolean
       totalSeconds: number
       warningStatus: 'warning' | 'normal' | 'no-data'
       warningPassCount: number
       warningLookback: number
+      warningThresholdHours: number
     }) => void) => {
       const handler = (_event: any, data: any) => callback(data)
       ipcRenderer.on('stats:tick', handler)

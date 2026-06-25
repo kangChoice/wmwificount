@@ -6,9 +6,10 @@ interface Props {
   warningStatus: 'warning' | 'normal' | 'no-data'
   warningPassCount: number
   warningLookback: number
+  warningThresholdHours: number
 }
 
-function TodayStats({ totalSeconds, warningStatus, warningPassCount, warningLookback }: Props) {
+function TodayStats({ totalSeconds, warningStatus, warningPassCount, warningLookback, warningThresholdHours }: Props) {
   const dayPercent = Math.min(100, Math.round((totalSeconds / 86400) * 100))
 
   return (
@@ -34,7 +35,7 @@ function TodayStats({ totalSeconds, warningStatus, warningPassCount, warningLook
       <div style={styles.card}>
         <h2 style={styles.sectionTitle}>工作时长提醒</h2>
         <div style={styles.ruleRow}>
-          规则：最近 <strong>{warningLookback}个工作日</strong> 中至少 <strong>{warningPassCount}天</strong> 超过8小时
+          规则：最近 <strong>{warningLookback}个工作日</strong> 中至少 <strong>{warningPassCount}天</strong> 超过{warningThresholdHours}小时
         </div>
         {warningStatus === 'warning' && (
           <div style={styles.statusWarning}>

@@ -30,13 +30,15 @@ export interface AppConfig {
   minPassDays: number
   notificationsEnabled: boolean
   notifyTimes: string[]   // ["HH:MM", ...] max 5
+  passThresholdHours: number  // default 8 (hours)
 }
 
 const DEFAULT_APP_CONFIG: AppConfig = {
   lookbackDays: 2,
   minPassDays: 1,
   notificationsEnabled: true,
-  notifyTimes: ['11:30', '18:00']
+  notifyTimes: ['11:30', '18:00'],
+  passThresholdHours: 8
 }
 
 export class NetworkTracker {
@@ -116,6 +118,14 @@ export class NetworkTracker {
     return this.config.notificationsEnabled
   }
 
+  getPassThresholdSeconds(): number {
+    return this.config.passThresholdHours * 3600
+  }
+
+  getPassThresholdHours(): number {
+    return this.config.passThresholdHours
+  }
+
   /** Register a callback that fires every second with the current total */
   onTickUpdate(cb: (totalSeconds: number) => void): void {
     this.onTick = cb
@@ -138,6 +148,27 @@ export class NetworkTracker {
   }
 
   getTotalSeconds(): number {
+    // Check for day boundary every time (catches midnight while app is running)
+    const today = this.getTodayStr()
+    if (today !== this.todayDate) {
+      // Finalize completed sessions from yesterday
+      this.finalizeDay(this.todayDate, this.todaySeconds)
+      this.todaySeconds = 0
+
+      // If there's an ongoing session, save the pre-midnight portion
+      if (this.sessionStart) {
+        const midnight = new Date(this.todayDate + 'T24:00:00').getTime()
+        const yesterdayPortion = Math.floor((midnight - this.sessionStart) / 1000)
+        if (yesterdayPortion > 0) {
+          this.finalizeDay(this.todayDate, yesterdayPortion)
+        }
+        this.sessionStart = midnight
+      }
+
+      this.todayDate = today
+      this.save()
+    }
+
     let total = this.todaySeconds
     if (this.sessionStart) {
       total += Math.floor((Date.now() - this.sessionStart) / 1000)
@@ -177,8 +208,8 @@ export class NetworkTracker {
    * Check recent workdays against configurable thresholds.
    * If fewer than minPassDays out of lookbackDays have >= 8h, show warning.
    */
-  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number } {
-    const EIGHT_HOURS = 28800
+  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number; thresholdHours: number } {
+    const thresholdSeconds = this.getPassThresholdSeconds()
     const { lookbackDays, minPassDays } = this.config
     const workdays = this.getRecentWorkdays(lookbackDays)
     if (workdays.length < lookbackDays) return { status: 'no-data', passCount: 0, lookback: lookbackDays }
@@ -192,14 +223,14 @@ export class NetworkTracker {
         hasMissingData = true
         continue
       }
-      if (r.seconds >= EIGHT_HOURS) passCount++
+      if (r.seconds >= thresholdSeconds) passCount++
     }
 
     // If any workday has no data at all (fresh install), don't warn
-    if (hasMissingData) return { status: 'no-data', passCount, lookback: lookbackDays }
+    if (hasMissingData) return { status: 'no-data', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
 
-    if (passCount >= minPassDays) return { status: 'normal', passCount, lookback: lookbackDays }
-    return { status: 'warning', passCount, lookback: lookbackDays }
+    if (passCount >= minPassDays) return { status: 'normal', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
+    return { status: 'warning', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
   }
 
   /** Find the last N workdays before today, using real Chinese holiday calendar */

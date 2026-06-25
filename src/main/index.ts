@@ -73,7 +73,8 @@ async function createWindow(): Promise<void> {
             totalSeconds,
             warningStatus: w.status,
             warningPassCount: w.passCount,
-            warningLookback: w.lookback
+            warningLookback: w.lookback,
+            warningThresholdHours: w.thresholdHours
           })
         }
       } catch { /* ignore */ }
@@ -103,7 +104,7 @@ function checkScheduledNotifications(): void {
       if (warning.status === 'warning') {
         new Notification({
           title: '⚠️ 联网时长提醒',
-          body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`,
+          body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过${warning.thresholdHours}小时`,
         }).show()
       }
     }

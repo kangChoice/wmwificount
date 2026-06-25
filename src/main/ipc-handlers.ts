@@ -44,7 +44,7 @@ export function setupIPC(): void {
       title: type === 'warning' ? '⚠️ 联网时长不足（测试）' : '✅ 联网情况正常（测试）',
       body: type === 'warning'
         ? `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，建议关注`
-        : `最近${warning.lookback}个工作日均已达8小时，状态正常`,
+        : `最近${warning.lookback}个工作日均已达${warning.thresholdHours}小时，状态正常`,
     }).show()
   })
 
@@ -58,6 +58,10 @@ export function setupIPC(): void {
 
   ipcMain.handle('stats:is-workday', (_event, dateStr: string) => {
     return tracker.isWorkday(new Date(dateStr))
+  })
+
+  ipcMain.handle('stats:get-threshold', (): number => {
+    return tracker.getPassThresholdSeconds()
   })
 }
 
