@@ -98,27 +98,27 @@ function resetNotificationsDaily(): void {
 
 function checkScheduledNotifications(): void {
   const now = new Date()
-  // Use tracker's cached isWorkday function (loaded at startup via dynamic import)
   if (!tracker.isTodayWorkday()) return
 
   const h = now.getHours()
   const m = now.getMinutes()
+  const totalMin = h * 60 + m
 
   const warning = tracker.getWorkdayWarning()
 
-  // 11:30 notification
-  if (h === 11 && m === 30 && !notified1130) {
+  // 11:30 notification (±1 min window to avoid missing)
+  if (totalMin >= 689 && totalMin <= 691 && !notified1130) {
     notified1130 = true
     if (warning.status === 'warning') {
       new Notification({
         title: '⚠️ 联网时长提醒',
-        body: `今天建议超过8小时，当前已联网${Math.floor(tracker.getTotalSeconds() / 3600)}小时`,
+        body: `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`,
       }).show()
     }
   }
 
-  // 18:00 notification
-  if (h === 18 && m === 0 && !notified1800) {
+  // 18:00 notification (±1 min window)
+  if (totalMin >= 1079 && totalMin <= 1081 && !notified1800) {
     notified1800 = true
     if (warning.status === 'warning') {
       new Notification({

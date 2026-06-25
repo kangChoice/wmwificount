@@ -1,4 +1,4 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain, app, Notification } from 'electron'
 import { tracker } from './tracker'
 
 export function setupIPC(): void {
@@ -36,6 +36,16 @@ export function setupIPC(): void {
 
   ipcMain.handle('settings:set-warning-config', (_event, cfg: { lookbackDays: number; minPassDays: number }) => {
     tracker.setWarningConfig(cfg)
+  })
+
+  ipcMain.handle('settings:test-notification', () => {
+    const warning = tracker.getWorkdayWarning()
+    new Notification({
+      title: warning.status === 'warning' ? '⚠️ 联网时长提醒（测试）' : '✅ 联网情况正常（测试）',
+      body: warning.status === 'warning'
+        ? `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`
+        : `最近${warning.lookback}个工作日情况正常`,
+    }).show()
   })
 }
 

@@ -44,6 +44,10 @@ function Settings() {
     } catch { /* ignore */ }
   }, [lookbackDays, minPassDays])
 
+  const handleTestNotification = useCallback(() => {
+    window.electronAPI.settings.testNotification().catch(console.error)
+  }, [])
+
   const handleExport = useCallback(() => {
     window.electronAPI.stats.getAllRecords().then(all => {
       const csv = ['Date,Seconds,Hours', ...all.map(r => `${r.date},${r.seconds},${(r.seconds / 3600).toFixed(1)}`)].join('\n')
@@ -102,6 +106,9 @@ function Settings() {
             💾 保存设置
           </button>
         )}
+        <button style={{ ...styles.button, marginTop: '10px', textAlign: 'center' as const, backgroundColor: '#e3f2fd' }} onClick={handleTestNotification}>
+          🔔 测试弹窗提醒
+        </button>
       </div>
 
       <div style={styles.card}>

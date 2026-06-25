@@ -22,6 +22,7 @@ declare global {
         setAutoStart: (enabled: boolean) => Promise<void>
         getWarningConfig: () => Promise<{ lookbackDays: number; minPassDays: number }>
         setWarningConfig: (cfg: { lookbackDays: number; minPassDays: number }) => Promise<void>
+        testNotification: () => Promise<void>
       }
     }
   }
