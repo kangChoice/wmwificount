@@ -34,10 +34,16 @@ export class NetworkTracker {
     this.dataPath = path.join(app.getPath('userData'), DATA_FILE)
     this.load()
 
-    // Mark today so we know if we cross midnight
-    this.todayDate = this.getTodayStr()
+    // Handle day boundary if we crossed midnight
+    const today = this.getTodayStr()
+    if (today !== this.todayDate) {
+      this.finalizeDay(this.todayDate, this.todaySeconds)
+      this.todaySeconds = 0
+    }
+    this.todayDate = today
 
-    // If we have an unclosed session from last run, close it (count = 0)
+    // If we have an unclosed session from last run, discard it gracefully
+    // (the accumulated time is already in todaySeconds from endSession/save)
     if (this.sessionStart) {
       this.sessionStart = null
       this.save()
@@ -103,7 +109,6 @@ export class NetworkTracker {
       clearInterval(this.checkTimer)
       this.checkTimer = null
     }
-    this.endSession()
   }
 
   private async checkNow(): Promise<void> {
@@ -118,13 +123,11 @@ export class NetworkTracker {
   }
 
   private startSession(): void {
-    // Check for day boundary
-    const today = this.getTodayStr()
-    if (today !== this.todayDate) {
-      // Move yesterday's accumulated seconds to daily records
+    // Check for day boundary (app stayed open across midnight)
+    if (this.getTodayStr() !== this.todayDate) {
       this.finalizeDay(this.todayDate, this.todaySeconds)
-      this.todayDate = today
       this.todaySeconds = 0
+      this.todayDate = this.getTodayStr()
     }
 
     this.sessionStart = Date.now()
@@ -145,13 +148,9 @@ export class NetworkTracker {
     this.endSession()
   }
 
-  /** Called when app quits */
+  /** Called when app quits — end session and persist, but DON'T finalize the day */
   finalizeToday(): void {
     this.endSession()
-    if (this.todaySeconds > 0) {
-      this.finalizeDay(this.todayDate, this.todaySeconds)
-      this.todaySeconds = 0
-    }
     this.save()
   }
 
