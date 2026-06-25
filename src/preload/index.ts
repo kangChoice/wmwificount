@@ -8,7 +8,6 @@ export interface ElectronAPI {
   }
   stats: {
     getTodayTotal: () => Promise<number>
-    getTodayCount: () => Promise<number>
     getDaily: (days: number) => Promise<any[]>
     getEvents: (days: number) => Promise<any[]>
   }
@@ -32,7 +31,6 @@ const api: ElectronAPI = {
   },
   stats: {
     getTodayTotal: () => ipcRenderer.invoke('stats:get-today-total'),
-    getTodayCount: () => ipcRenderer.invoke('stats:get-today-count'),
     getDaily: (days) => ipcRenderer.invoke('stats:get-daily', days),
     getEvents: (days) => ipcRenderer.invoke('stats:get-events', days),
   },

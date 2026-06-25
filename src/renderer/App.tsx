@@ -10,7 +10,6 @@ type Tab = 'status' | 'history' | 'settings'
 function App() {
   const [currentState, setCurrentState] = useState<WiFiStateData | null>(null)
   const [todayTotal, setTodayTotal] = useState(0)
-  const [todayCount, setTodayCount] = useState(0)
   const [currentSessionDuration, setCurrentSessionDuration] = useState(0)
   const [activeTab, setActiveTab] = useState<Tab>('status')
 
@@ -18,14 +17,12 @@ function App() {
   useEffect(() => {
     async function load() {
       try {
-        const [state, total, count] = await Promise.all([
+        const [state, total] = await Promise.all([
           window.electronAPI.wifi.getState(),
-          window.electronAPI.stats.getTodayTotal(),
-          window.electronAPI.stats.getTodayCount()
+          window.electronAPI.stats.getTodayTotal()
         ])
         setCurrentState(state)
         setTodayTotal(total)
-        setTodayCount(count)
       } catch (err) {
         console.error('Failed to load initial data:', err)
       }
@@ -39,7 +36,6 @@ function App() {
       setCurrentState(state)
       // Refresh stats when state changes
       window.electronAPI.stats.getTodayTotal().then(setTodayTotal)
-      window.electronAPI.stats.getTodayCount().then(setTodayCount)
     })
     return unsubscribe
   }, [])
@@ -65,7 +61,6 @@ function App() {
 
   const handleRefresh = useCallback(() => {
     window.electronAPI.stats.getTodayTotal().then(setTodayTotal)
-    window.electronAPI.stats.getTodayCount().then(setTodayCount)
     window.electronAPI.wifi.getState().then(setCurrentState)
   }, [])
 
@@ -108,9 +103,6 @@ function App() {
             />
             <TodayStats
               totalSeconds={todayTotal + (currentState?.connected ? currentSessionDuration : 0)}
-              sessionCount={todayCount}
-              isConnected={currentState?.connected ?? false}
-              currentSessionSeconds={currentSessionDuration}
             />
           </>
         )}

@@ -161,16 +161,6 @@ export class DataStore {
     return result[0].values[0][0] as number
   }
 
-  getTodaySessionCount(): number {
-    const result = this.db.exec(
-      `SELECT COUNT(*) FROM connection_events
-       WHERE start_time >= datetime('now', 'start of day')`
-    )
-
-    if (result.length === 0 || result[0].values.length === 0) return 0
-    return result[0].values[0][0] as number
-  }
-
   getDailyStats(days: number): DailyStats[] {
     const result = this.db.exec(
       `SELECT date(start_time) as day,

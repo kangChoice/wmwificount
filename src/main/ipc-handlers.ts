@@ -60,10 +60,6 @@ export function setupIPC(mainWindow: BrowserWindow): void {
     return dataStore.getTodayTotalSeconds()
   })
 
-  ipcMain.handle('stats:get-today-count', (): number => {
-    return dataStore.getTodaySessionCount()
-  })
-
   ipcMain.handle('stats:get-daily', (_event, days: number): DailyStats[] => {
     return dataStore.getDailyStats(days)
   })

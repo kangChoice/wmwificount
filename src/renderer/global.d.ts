@@ -10,7 +10,6 @@ declare global {
       }
       stats: {
         getTodayTotal: () => Promise<number>
-        getTodayCount: () => Promise<number>
         getDaily: (days: number) => Promise<any[]>
         getEvents: (days: number) => Promise<any[]>
       }

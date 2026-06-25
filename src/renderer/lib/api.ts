@@ -29,7 +29,6 @@ declare global {
       }
       stats: {
         getTodayTotal: () => Promise<number>
-        getTodayCount: () => Promise<number>
         getDaily: (days: number) => Promise<DailyStatsData[]>
         getEvents: (days: number) => Promise<ConnectionEventData[]>
       }
