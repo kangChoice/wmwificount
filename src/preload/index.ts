@@ -13,6 +13,7 @@ const api = {
       totalSeconds: number
       warningStatus: 'warning' | 'normal' | 'no-data'
       warningPassCount: number
+      warningMinPassDays: number
       warningLookback: number
       warningThresholdHours: number
     }) => void) => {

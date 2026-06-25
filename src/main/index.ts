@@ -73,6 +73,7 @@ async function createWindow(): Promise<void> {
             totalSeconds,
             warningStatus: w.status,
             warningPassCount: w.passCount,
+            warningMinPassDays: w.minPassDays,
             warningLookback: w.lookback,
             warningThresholdHours: w.thresholdHours
           })

@@ -8,13 +8,14 @@ declare global {
         getConnected: () => Promise<boolean>
         getDaily: (days: number) => Promise<{ date: string; seconds: number }[]>
         getAllRecords: () => Promise<{ date: string; seconds: number }[]>
-        getWarning: () => Promise<{ status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number; thresholdHours: number }>
+        getWarning: () => Promise<{ status: 'warning' | 'normal' | 'no-data'; passCount: number; minPassDays: number; lookback: number; thresholdHours: number }>
         getThreshold: () => Promise<number>
         onTick: (callback: (data: {
           connected: boolean
           totalSeconds: number
           warningStatus: 'warning' | 'normal' | 'no-data'
           warningPassCount: number
+          warningMinPassDays: number
           warningLookback: number
           warningThresholdHours: number
         }) => void) => () => void

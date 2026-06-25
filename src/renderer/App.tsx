@@ -11,6 +11,7 @@ function App() {
   const [totalSeconds, setTotalSeconds] = useState(0)
   const [warningStatus, setWarningStatus] = useState<'warning' | 'normal' | 'no-data'>('no-data')
   const [warningPassCount, setWarningPassCount] = useState(0)
+  const [warningMinPassDays, setWarningMinPassDays] = useState(1)
   const [warningLookback, setWarningLookback] = useState(2)
   const [warningThresholdHours, setWarningThresholdHours] = useState(8)
   const [activeTab, setActiveTab] = useState<Tab>('status')
@@ -25,6 +26,7 @@ function App() {
       setTotalSeconds(t)
       setWarningStatus(w.status)
       setWarningPassCount(w.passCount)
+      setWarningMinPassDays(w.minPassDays)
       setWarningLookback(w.lookback)
       setWarningThresholdHours(w.thresholdHours)
     })
@@ -34,6 +36,7 @@ function App() {
       setTotalSeconds(data.totalSeconds)
       setWarningStatus(data.warningStatus)
       setWarningPassCount(data.warningPassCount)
+      setWarningMinPassDays(data.warningMinPassDays)
       setWarningLookback(data.warningLookback)
       setWarningThresholdHours(data.warningThresholdHours)
     })
@@ -63,6 +66,7 @@ function App() {
               totalSeconds={totalSeconds}
               warningStatus={warningStatus}
               warningPassCount={warningPassCount}
+              warningMinPassDays={warningMinPassDays}
               warningLookback={warningLookback}
               warningThresholdHours={warningThresholdHours}
             />

@@ -13,6 +13,7 @@ interface TrackerData {
   todaySeconds: number
   dailyRecords: DailyRecord[]
   currentSessionStart: string | null  // ISO string or null
+  lastResetDate: string               // last date we performed a day boundary reset
 }
 
 const DATA_FILE = 'network-time-data.json'
@@ -47,6 +48,7 @@ export class NetworkTracker {
   private todaySeconds = 0
   private dailyRecords: DailyRecord[] = []
   private todayDate = ''
+  private lastResetDate = ''
   private dataPath = ''
   private configPath = ''
   private config: AppConfig = { ...DEFAULT_APP_CONFIG }
@@ -77,6 +79,7 @@ export class NetworkTracker {
       this.todaySeconds = 0
     }
     this.todayDate = today
+    this.lastResetDate = today
 
     // If we have an unclosed session from last run, discard it gracefully
     if (this.sessionStart) {
@@ -165,12 +168,23 @@ export class NetworkTracker {
       }
 
       this.todayDate = today
+      this.lastResetDate = today
       // If we're currently connected, start a new session for today
       if (this.connected) {
         this.sessionStart = Date.now()
       } else {
         this.sessionStart = null
       }
+      this.save()
+    } else if (today !== this.lastResetDate) {
+      // Second line of defense: check lastResetDate independently
+      // This catches cases where todayDate was somehow already updated
+      // but the actual reset hasn't been done yet for the new day
+      this.finalizeDay(this.todayDate, this.todaySeconds)
+      this.todaySeconds = 0
+      this.todayDate = today
+      this.lastResetDate = today
+      if (this.connected) this.sessionStart = Date.now()
       this.save()
     }
 
@@ -213,13 +227,13 @@ export class NetworkTracker {
    * Check recent workdays against configurable thresholds.
    * If fewer than minPassDays out of lookbackDays have >= 8h, show warning.
    */
-  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data'; passCount: number; lookback: number; thresholdHours: number } {
+  getWorkdayWarning(): { status: 'warning' | 'normal' | 'no-data'; passCount: number; minPassDays: number; lookback: number; thresholdHours: number } {
     const thresholdSeconds = this.getPassThresholdSeconds()
     const { lookbackDays, minPassDays } = this.config
     const workdays = this.getRecentWorkdays(lookbackDays)
-    if (workdays.length < lookbackDays) return { status: 'no-data', passCount: 0, lookback: lookbackDays }
+    if (workdays.length < lookbackDays) return { status: 'no-data', passCount: 0, minPassDays, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
 
-    // Count how many of these workdays have data AND pass the 8h threshold
+    // Count how many of these workdays have data AND pass the threshold
     let passCount = 0
     let hasMissingData = false
     for (const d of workdays) {
@@ -232,10 +246,10 @@ export class NetworkTracker {
     }
 
     // If any workday has no data at all (fresh install), don't warn
-    if (hasMissingData) return { status: 'no-data', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
+    if (hasMissingData) return { status: 'no-data', passCount, minPassDays, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
 
-    if (passCount >= minPassDays) return { status: 'normal', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
-    return { status: 'warning', passCount, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
+    if (passCount >= minPassDays) return { status: 'normal', passCount, minPassDays, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
+    return { status: 'warning', passCount, minPassDays, lookback: lookbackDays, thresholdHours: this.config.passThresholdHours }
   }
 
   /** Find the last N workdays before today, using real Chinese holiday calendar */
@@ -348,7 +362,8 @@ export class NetworkTracker {
         todayDate: this.todayDate,
         todaySeconds: this.todaySeconds,
         dailyRecords: this.dailyRecords,
-        currentSessionStart: this.sessionStart ? new Date(this.sessionStart).toISOString() : null
+        currentSessionStart: this.sessionStart ? new Date(this.sessionStart).toISOString() : null,
+        lastResetDate: this.lastResetDate
       }
       const dir = path.dirname(this.dataPath)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -362,10 +377,10 @@ export class NetworkTracker {
         const raw = fs.readFileSync(this.dataPath, 'utf-8')
         const data: TrackerData = JSON.parse(raw)
         this.todayDate = data.todayDate || ''
+        this.lastResetDate = data.lastResetDate || data.todayDate || ''
         this.todaySeconds = data.todaySeconds || 0
         this.dailyRecords = data.dailyRecords || []
 
-        // If saved session exists, restore it as start time
         if (data.currentSessionStart) {
           this.sessionStart = new Date(data.currentSessionStart).getTime()
         }
