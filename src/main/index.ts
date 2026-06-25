@@ -69,7 +69,8 @@ async function createWindow(): Promise<void> {
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('stats:tick', {
             connected: tracker.getIsConnected(),
-            totalSeconds
+            totalSeconds,
+            warning: tracker.getWorkdayWarning().show
           })
         }
       } catch { /* ignore */ }

@@ -18,6 +18,10 @@ export function setupIPC(): void {
     return tracker.getAllRecords()
   })
 
+  ipcMain.handle('stats:get-warning', (): boolean => {
+    return tracker.getWorkdayWarning().show
+  })
+
   ipcMain.handle('settings:get-auto-start', (): boolean => {
     return app.getLoginItemSettings().openAtLogin
   })

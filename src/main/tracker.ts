@@ -103,6 +103,43 @@ export class NetworkTracker {
     return [...this.dailyRecords].sort((a, b) => a.date.localeCompare(b.date))
   }
 
+  /**
+   * Check if the last 2 workdays both had < 8 hours of network time.
+   * If so, show a warning that today should exceed 8 hours.
+   */
+  getWorkdayWarning(): { show: boolean } {
+    const EIGHT_HOURS = 28800
+    const workdays = this.getLastTwoWorkdays()
+    if (workdays.length < 2) return { show: false }
+
+    const s1 = this.getRecordSeconds(workdays[0])
+    const s2 = this.getRecordSeconds(workdays[1])
+
+    return { show: s1 < EIGHT_HOURS && s2 < EIGHT_HOURS }
+  }
+
+  /** Find the last 2 weekdays (Mon-Fri) before today, skipping weekends */
+  private getLastTwoWorkdays(): string[] {
+    const result: string[] = []
+    let d = new Date()
+    let tries = 0
+    while (result.length < 2 && tries < 14) {
+      tries++
+      d.setDate(d.getDate() - 1)
+      const day = d.getDay()  // 0=Sun, 6=Sat
+      if (day !== 0 && day !== 6) {
+        result.push(d.toISOString().slice(0, 10))
+      }
+    }
+    return result
+  }
+
+  /** Lookup seconds for a date string from dailyRecords */
+  private getRecordSeconds(dateStr: string): number {
+    const r = this.dailyRecords.find(r => r.date === dateStr)
+    return r ? r.seconds : 0
+  }
+
   shutdown(): void {
     this.stopTicking()
     if (this.checkTimer) {
