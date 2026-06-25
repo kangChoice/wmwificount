@@ -43,13 +43,14 @@ function Settings() {
   const handleSaveConfig = useCallback(async () => {
     const ld = Math.max(1, Math.min(10, lookbackDays))
     const mp = Math.max(1, Math.min(ld, minPassDays))
-    setLookbackDays(ld); setMinPassDays(mp)
-    const cfg = { lookbackDays: ld, minPassDays: mp, notificationsEnabled, notifyTimes, passThresholdHours }
+    const pth = Math.max(1, Math.min(24, passThresholdHours))
+    setLookbackDays(ld); setMinPassDays(mp); setPassThresholdHours(pth)
+    const cfg = { lookbackDays: ld, minPassDays: mp, notificationsEnabled, notifyTimes, passThresholdHours: pth }
     try {
       await window.electronAPI.settings.setAppConfig(cfg)
       setInitialConfig(cfg)
     } catch { /* ignore */ }
-  }, [lookbackDays, minPassDays, notificationsEnabled, notifyTimes])
+  }, [lookbackDays, minPassDays, notificationsEnabled, notifyTimes, passThresholdHours])
 
   const handleAddTime = useCallback(() => {
     if (notifyTimes.length >= 5) return

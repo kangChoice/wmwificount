@@ -16,7 +16,7 @@ function HistoryChart() {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date().getMonth())
   const [calendarYear, setCalendarYear] = useState(() => new Date().getFullYear())
   const [dayInfo, setDayInfo] = useState<Map<string, { isWorkday: boolean; seconds: number }>>(new Map())
-  const [thresholdSeconds, setThresholdSeconds] = useState(thresholdSeconds)
+  const [thresholdSeconds, setThresholdSeconds] = useState(28800)
 
   useEffect(() => {
     window.electronAPI.stats.getThreshold().then(setThresholdSeconds).catch(console.error)
@@ -43,11 +43,15 @@ function HistoryChart() {
       promises.push(
         window.electronAPI.calendar.isWorkday(dateStr).then(isWorkday => {
           info.set(dateStr, { isWorkday, seconds })
+        }).catch(() => {
+          // fallback: weekend check
+          const d = new Date(dateStr)
+          info.set(dateStr, { isWorkday: d.getDay() !== 0 && d.getDay() !== 6, seconds })
         })
       )
     }
 
-    Promise.all(promises).then(() => setDayInfo(info))
+    Promise.all(promises).then(() => setDayInfo(info)).catch(() => setDayInfo(info))
   }, [data, calendarMonth, calendarYear])
 
   // Navigate month
@@ -93,11 +97,11 @@ function HistoryChart() {
       if (!info.isWorkday && info.seconds === 0) {
         // Holiday with no data — keep neutral
       } else if (info.isWorkday && info.seconds >= thresholdSeconds) {
-        bgColor = '#e8f5e9'; textColor = '#2e7d32'  // green: workday >= 8h
+        bgColor = '#e8f5e9'; textColor = '#2e7d32'  // green: workday >= threshold
       } else if (info.isWorkday && info.seconds > 0 && info.seconds < thresholdSeconds) {
-        bgColor = '#fff3cd'; textColor = '#856404'  // yellow: workday < 8h
+        bgColor = '#ffebee'; textColor = '#c62828'  // red: workday < threshold (not met)
       } else if (info.isWorkday && info.seconds === 0) {
-        bgColor = '#ffebee'; textColor = '#c62828'  // red: workday no data
+        bgColor = '#fff3cd'; textColor = '#856404'  // yellow: no data
       }
     }
 
@@ -109,7 +113,7 @@ function HistoryChart() {
       }}>
         <div style={{ ...styles.calDayNum, color: textColor }}>{d}</div>
         {info && info.isWorkday && (
-          <div style={{ ...styles.calDayBar, backgroundColor: info.seconds >= thresholdSeconds ? '#4caf50' : info.seconds > 0 ? '#ffc107' : '#ef5350' }} />
+          <div style={{ ...styles.calDayBar, backgroundColor: info.seconds >= thresholdSeconds ? '#4caf50' : info.seconds > 0 ? '#ef5350' : '#ffc107' }} />
         )}
       </div>
     )
@@ -149,9 +153,9 @@ function HistoryChart() {
         </div>
 
         <div style={styles.legend}>
-          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#e8f5e9', border: '1px solid #4caf50' }} /> 工作日≥8h</span>
-          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#fff3cd', border: '1px solid #ffc107' }} /> 工作日未满8h</span>
-          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#ffebee', border: '1px solid #ef5350' }} /> 工作无数据</span>
+          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#e8f5e9', border: '1px solid #4caf50' }} /> 已达阈值</span>
+          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#ffebee', border: '1px solid #ef5350' }} /> 未达阈值</span>
+          <span style={styles.legendItem}><span style={{ ...styles.legendDot, backgroundColor: '#fff3cd', border: '1px solid #ffc107' }} /> 无数据</span>
         </div>
       </div>
     </div>
