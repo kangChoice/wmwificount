@@ -8,16 +8,16 @@
 
 ```bash
 # 1. 修改 package.json 中的 version 字段
-#    例如从 1.0.3 → 1.0.4
+#    例如从 2.1.0 → 2.2.0
 
 # 2. 提交代码
 git add -A
-git commit -m "chore: bump version to 1.0.4"
+git commit -m "chore: bump version to 2.2.0"
 git push
 
-# 3. 打新标签（在旧版本号上加 1）
-git tag v1.0.4
-git push origin v1.0.4
+# 3. 打新标签
+git tag v2.2.0
+git push origin v2.2.0
 
 # 4. GitHub Actions 自动构建
 #    去 https://github.com/kangChoice/wmwificount/actions 看进度
@@ -27,16 +27,26 @@ git push origin v1.0.4
 
 | 操作 | 后果 | 允许？ |
 |------|------|:------:|
-| `git tag -d v1.0.x` | 删除旧标签 | ❌ **禁止** |
-| `git push --delete origin v1.0.x` | 删除远程标签 | ❌ **禁止** |
-| `git push origin v1.0.x --force` | 覆盖远程标签 | ❌ **禁止** |
-| `git tag v1.0.4`（在 v1.0.4 已存在时） | 报错 "tag already exists" | ❌ 应使用 v1.0.5 |
+| `git tag -d v2.x.x` | 删除旧标签 | ❌ **禁止** |
+| `git push --delete origin v2.x.x` | 删除远程标签 | ❌ **禁止** |
+| `git push origin v2.x.x --force` | 覆盖远程标签 | ❌ **禁止** |
 
-## 版本号递增规则
+## 版本历史
 
-```
-v1.0.3 → 下次发版 → v1.0.4
-v1.0.4 → 下次发版 → v1.0.5
-v1.0.5 → 下次发版 → v1.0.6
-...以此类推，永远只加不减
-```
+### v2.2.0（当前）
+- 🆕 **法定节假日识别**：接入国务院日历数据，正确识别春节/国庆/中秋等法定节假日和调休补班
+- 🆕 **桌面弹窗提醒**：法定工作日 11:30 和 18:00 推送原生通知
+- 🆕 **警示规则可配置**：Settings 页可调整检查天数（最近N个工作日）和达标天数（需M天≥8h），持久化不丢失
+- 🆕 **工作日状态卡片**：正常时显示绿色"联网情况正常"，警示时显示黄色提示条
+- 🆕 **TCP 网络检测**：替换 ping 和 HTTPS，避免公司防火墙拦截
+- 🆕 **主进程实时推送**：每秒推送数据到界面，无需渲染进程轮询
+- 🔧 **移除 sql.js 依赖**：改为 JSON 文件存储，零 WASM 加载风险
+- 🔧 **修复数据持久化**：退出/重启/关机数据不丢失
+
+### v2.0.0
+- 核心重构：剔除 sql.js，改用 TCP 网络检测 + JSON 文件存储
+- 实时推送机制，修复始终显示 0 的 Bug
+
+### v1.0.0 ~ v1.0.6
+- Electron + React 基础版本
+- 从 WiFi 专用检测逐步改为通用网络连通性检测
