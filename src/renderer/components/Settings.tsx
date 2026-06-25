@@ -44,8 +44,8 @@ function Settings() {
     } catch { /* ignore */ }
   }, [lookbackDays, minPassDays])
 
-  const handleTestNotification = useCallback(() => {
-    window.electronAPI.settings.testNotification().catch(console.error)
+  const handleTestNotification = useCallback((type: 'warning' | 'normal') => {
+    window.electronAPI.settings.testNotification(type).catch(console.error)
   }, [])
 
   const handleExport = useCallback(() => {
@@ -106,9 +106,14 @@ function Settings() {
             💾 保存设置
           </button>
         )}
-        <button style={{ ...styles.button, marginTop: '10px', textAlign: 'center' as const, backgroundColor: '#e3f2fd' }} onClick={handleTestNotification}>
-          🔔 测试弹窗提醒
-        </button>
+        <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+          <button style={{ ...styles.button, textAlign: 'center' as const, backgroundColor: '#ffebee', color: '#c62828', flex: 1 }} onClick={() => handleTestNotification('warning')}>
+            🔴 测试异常通知
+          </button>
+          <button style={{ ...styles.button, textAlign: 'center' as const, backgroundColor: '#e8f5e9', color: '#2e7d32', flex: 1 }} onClick={() => handleTestNotification('normal')}>
+            🟢 测试正常通知
+          </button>
+        </div>
       </div>
 
       <div style={styles.card}>

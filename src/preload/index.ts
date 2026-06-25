@@ -24,7 +24,7 @@ const api = {
     setAutoStart: (enabled: boolean) => ipcRenderer.invoke('settings:set-auto-start', enabled),
     getWarningConfig: () => ipcRenderer.invoke('settings:get-warning-config'),
     setWarningConfig: (cfg: { lookbackDays: number; minPassDays: number }) => ipcRenderer.invoke('settings:set-warning-config', cfg),
-    testNotification: () => ipcRenderer.invoke('settings:test-notification')
+    testNotification: (type: 'warning' | 'normal') => ipcRenderer.invoke('settings:test-notification', type)
   }
 }
 

@@ -38,13 +38,13 @@ export function setupIPC(): void {
     tracker.setWarningConfig(cfg)
   })
 
-  ipcMain.handle('settings:test-notification', () => {
+  ipcMain.handle('settings:test-notification', (_event, type: 'warning' | 'normal') => {
     const warning = tracker.getWorkdayWarning()
     new Notification({
-      title: warning.status === 'warning' ? '⚠️ 联网时长提醒（测试）' : '✅ 联网情况正常（测试）',
-      body: warning.status === 'warning'
-        ? `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，今天建议超过8小时`
-        : `最近${warning.lookback}个工作日情况正常`,
+      title: type === 'warning' ? '⚠️ 联网时长不足（测试）' : '✅ 联网情况正常（测试）',
+      body: type === 'warning'
+        ? `最近${warning.lookback}个工作日中仅${warning.passCount}天达标，建议关注`
+        : `最近${warning.lookback}个工作日均已达8小时，状态正常`,
     }).show()
   })
 }

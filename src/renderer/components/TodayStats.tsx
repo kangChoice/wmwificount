@@ -34,7 +34,7 @@ function TodayStats({ totalSeconds, warningStatus, warningPassCount, warningLook
       <div style={styles.card}>
         <h2 style={styles.sectionTitle}>工作时长提醒</h2>
         <div style={styles.ruleRow}>
-          规则：最近{'} '}<strong>{warningLookback}个工作日</strong> 中至少 <strong>{warningPassCount}天</strong> 超过8小时
+          规则：最近 <strong>{warningLookback}个工作日</strong> 中至少 <strong>{warningPassCount}天</strong> 超过8小时
         </div>
         {warningStatus === 'warning' && (
           <div style={styles.statusWarning}>
