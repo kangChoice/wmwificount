@@ -38,9 +38,9 @@ function Settings({ onRefresh }: Props) {
   const handleExport = useCallback(() => {
     window.electronAPI.stats.getEvents(365).then(allEvents => {
       const csv = [
-        'ID,SSID,Platform,Start Time,End Time,Duration (s)',
+        'Start Time,End Time,Duration (s)',
         ...allEvents.map(e =>
-          `${e.id},${e.ssid},${e.platform},${e.start_time},${e.end_time || ''},${e.duration_seconds || ''}`
+          `${e.start_time},${e.end_time || ''},${e.duration_seconds || ''}`
         )
       ].join('\n')
 
@@ -109,7 +109,6 @@ function Settings({ onRefresh }: Props) {
               events.map(evt => (
                 <div key={evt.id} style={styles.eventItem}>
                   <div style={styles.eventTop}>
-                    <span style={styles.eventSSID}>{evt.ssid}</span>
                     <span style={styles.eventDuration}>
                       {evt.duration_seconds ? formatDuration(evt.duration_seconds) : '进行中'}
                     </span>

@@ -13,7 +13,6 @@ declare global {
         getTodayCount: () => Promise<number>
         getDaily: (days: number) => Promise<any[]>
         getEvents: (days: number) => Promise<any[]>
-        getSSIDList: () => Promise<string[]>
       }
       settings: {
         getAutoStart: () => Promise<boolean>

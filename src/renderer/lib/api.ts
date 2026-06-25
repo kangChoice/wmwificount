@@ -2,15 +2,11 @@
 
 export interface WiFiStateData {
   connected: boolean
-  ssid: string | null
-  signalStrength: number | null
   timestamp: string
 }
 
 export interface ConnectionEventData {
   id: string
-  ssid: string
-  platform: string
   start_time: string
   end_time: string | null
   duration_seconds: number | null
@@ -36,7 +32,6 @@ declare global {
         getTodayCount: () => Promise<number>
         getDaily: (days: number) => Promise<DailyStatsData[]>
         getEvents: (days: number) => Promise<ConnectionEventData[]>
-        getSSIDList: () => Promise<string[]>
       }
       settings: {
         getAutoStart: () => Promise<boolean>

@@ -11,7 +11,6 @@ export interface ElectronAPI {
     getTodayCount: () => Promise<number>
     getDaily: (days: number) => Promise<any[]>
     getEvents: (days: number) => Promise<any[]>
-    getSSIDList: () => Promise<string[]>
   }
   settings: {
     getAutoStart: () => Promise<boolean>
@@ -36,7 +35,6 @@ const api: ElectronAPI = {
     getTodayCount: () => ipcRenderer.invoke('stats:get-today-count'),
     getDaily: (days) => ipcRenderer.invoke('stats:get-daily', days),
     getEvents: (days) => ipcRenderer.invoke('stats:get-events', days),
-    getSSIDList: () => ipcRenderer.invoke('stats:get-ssid-list')
   },
   settings: {
     getAutoStart: () => ipcRenderer.invoke('settings:get-auto-start'),

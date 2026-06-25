@@ -1,5 +1,6 @@
 import React from 'react'
-import { WiFiStateData, formatDuration } from '../lib/api'
+import { formatDuration } from '../lib/api'
+import { WiFiStateData } from '../lib/api'
 
 interface Props {
   state: WiFiStateData | null
@@ -8,42 +9,29 @@ interface Props {
 
 function StatusCard({ state, sessionDuration }: Props) {
   const isConnected = state?.connected ?? false
-  const signalStr = state?.signalStrength
-    ? `${state.signalStrength}%`
-    : '--'
 
   return (
     <div style={styles.card}>
       <h2 style={styles.sectionTitle}>当前状态</h2>
 
       <div style={styles.row}>
-        <span style={styles.label}>连接状态</span>
+        <span style={styles.label}>网络状态</span>
         <span style={{
           ...styles.value,
           color: isConnected ? '#34c759' : '#ff3b30',
           fontWeight: 600
         }}>
-          {isConnected ? '🟢 已连接' : '🔴 未连接'}
+          {isConnected ? '🟢 已联网' : '🔴 未联网'}
         </span>
       </div>
 
       {isConnected && (
-        <>
-          <div style={styles.row}>
-            <span style={styles.label}>WiFi 名称</span>
-            <span style={styles.value}>{state?.ssid || '--'}</span>
-          </div>
-          <div style={styles.row}>
-            <span style={styles.label}>信号强度</span>
-            <span style={styles.value}>{signalStr}</span>
-          </div>
-          <div style={styles.row}>
-            <span style={styles.label}>当前已连接</span>
-            <span style={{ ...styles.value, fontWeight: 600 }}>
-              {formatDuration(sessionDuration)}
-            </span>
-          </div>
-        </>
+        <div style={styles.row}>
+          <span style={styles.label}>已连接</span>
+          <span style={{ ...styles.value, fontWeight: 600 }}>
+            {formatDuration(sessionDuration)}
+          </span>
+        </div>
       )}
     </div>
   )

@@ -8,8 +8,6 @@ import { ConnectionEvent, DailyStats } from '../monitor/types'
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS connection_events (
     id               TEXT PRIMARY KEY,
-    ssid             TEXT NOT NULL,
-    platform         TEXT NOT NULL,
     start_time       TEXT NOT NULL,
     end_time         TEXT,
     duration_seconds INTEGER,
@@ -25,8 +23,6 @@ export class DataStore {
     const userDataPath = app.getPath('userData')
     this.dbPath = path.join(userDataPath, 'wifi-events.db')
 
-    // In packaged app, sql-wasm.wasm is in resources dir (via extraResources).
-    // In dev mode, it's under node_modules/sql.js/dist/
     const isPackaged = app.isPackaged
     let wasmPath: string
     if (isPackaged) {
@@ -39,7 +35,6 @@ export class DataStore {
       locateFile: () => wasmPath
     })
 
-    // Load existing database or create new
     try {
       if (fs.existsSync(this.dbPath)) {
         const buffer = fs.readFileSync(this.dbPath)
@@ -65,28 +60,29 @@ export class DataStore {
     fs.writeFileSync(this.dbPath, buffer)
   }
 
-  // Create a new connection session
-  startEvent(ssid: string): ConnectionEvent {
-    const platform = process.platform
+  startEvent(): ConnectionEvent {
     const now = new Date().toISOString()
     const id = uuidv4()
 
     this.db.run(
-      `INSERT INTO connection_events (id, ssid, platform, start_time)
-       VALUES (?, ?, ?, ?)`,
-      [id, ssid, platform, now]
+      `INSERT INTO connection_events (id, start_time) VALUES (?, ?)`,
+      [id, now]
     )
     this.save()
 
-    return { id, ssid, platform, start_time: now, end_time: null, duration_seconds: null, created_at: now }
+    return {
+      id,
+      start_time: now,
+      end_time: null,
+      duration_seconds: null,
+      created_at: now
+    }
   }
 
-  // Close an ongoing session
   endEvent(eventId: string): void {
     const now = new Date()
     const nowISO = now.toISOString()
 
-    // Get the start_time to compute duration
     const result = this.db.exec(
       `SELECT start_time FROM connection_events WHERE id = ? AND end_time IS NULL`,
       [eventId]
@@ -104,42 +100,6 @@ export class DataStore {
     this.save()
   }
 
-  // Find the ongoing session (if any)
-  getActiveEvent(): ConnectionEvent | null {
-    const result = this.db.exec(
-      `SELECT id, ssid, platform, start_time, end_time, duration_seconds, created_at
-       FROM connection_events WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1`
-    )
-
-    if (result.length === 0 || result[0].values.length === 0) return null
-
-    const row = result[0].values[0]
-    return {
-      id: row[0] as string,
-      ssid: row[1] as string,
-      platform: row[2] as string,
-      start_time: row[3] as string,
-      end_time: row[4] as string | null,
-      duration_seconds: row[5] as number | null,
-      created_at: row[6] as string
-    }
-  }
-
-  // Close any open session (for recovery on startup)
-  // When recovering from crash/shutdown, set end_time = start_time so duration = 0.
-  // This avoids counting offline hours (sleep, crash) as WiFi time.
-  closeAllActiveEvents(): void {
-    const active = this.getActiveEvent()
-    if (active) {
-      this.db.run(
-        `UPDATE connection_events SET end_time = start_time, duration_seconds = 0 WHERE id = ? AND end_time IS NULL`,
-        [active.id]
-      )
-      this.save()
-    }
-  }
-
-  // Close session at a specific point in time (for suspend)
   endEventAt(eventId: string, endTime: Date): void {
     const nowISO = endTime.toISOString()
 
@@ -160,7 +120,35 @@ export class DataStore {
     this.save()
   }
 
-  // Get today's total connected time in seconds
+  getActiveEvent(): ConnectionEvent | null {
+    const result = this.db.exec(
+      `SELECT id, start_time, end_time, duration_seconds, created_at
+       FROM connection_events WHERE end_time IS NULL ORDER BY start_time DESC LIMIT 1`
+    )
+
+    if (result.length === 0 || result[0].values.length === 0) return null
+
+    const row = result[0].values[0]
+    return {
+      id: row[0] as string,
+      start_time: row[1] as string,
+      end_time: row[2] as string | null,
+      duration_seconds: row[3] as number | null,
+      created_at: row[4] as string
+    }
+  }
+
+  closeAllActiveEvents(): void {
+    const active = this.getActiveEvent()
+    if (active) {
+      this.db.run(
+        `UPDATE connection_events SET end_time = start_time, duration_seconds = 0 WHERE id = ? AND end_time IS NULL`,
+        [active.id]
+      )
+      this.save()
+    }
+  }
+
   getTodayTotalSeconds(): number {
     const result = this.db.exec(
       `SELECT COALESCE(SUM(duration_seconds), 0)
@@ -173,7 +161,6 @@ export class DataStore {
     return result[0].values[0][0] as number
   }
 
-  // Get today's session count
   getTodaySessionCount(): number {
     const result = this.db.exec(
       `SELECT COUNT(*) FROM connection_events
@@ -184,7 +171,6 @@ export class DataStore {
     return result[0].values[0][0] as number
   }
 
-  // Get daily aggregates for charting
   getDailyStats(days: number): DailyStats[] {
     const result = this.db.exec(
       `SELECT date(start_time) as day,
@@ -205,10 +191,9 @@ export class DataStore {
     })) || []
   }
 
-  // Get all events for a date range
   getEvents(days: number): ConnectionEvent[] {
     const result = this.db.exec(
-      `SELECT id, ssid, platform, start_time, end_time, duration_seconds, created_at
+      `SELECT id, start_time, end_time, duration_seconds, created_at
        FROM connection_events
        WHERE start_time >= datetime('now', ? || ' days')
        ORDER BY start_time DESC`,
@@ -217,25 +202,13 @@ export class DataStore {
 
     return result[0]?.values.map(row => ({
       id: row[0] as string,
-      ssid: row[1] as string,
-      platform: row[2] as string,
-      start_time: row[3] as string,
-      end_time: row[4] as string | null,
-      duration_seconds: row[5] as number | null,
-      created_at: row[6] as string
+      start_time: row[1] as string,
+      end_time: row[2] as string | null,
+      duration_seconds: row[3] as number | null,
+      created_at: row[4] as string
     })) || []
   }
 
-  // Get unique SSIDs
-  getSSIDList(): string[] {
-    const result = this.db.exec(
-      `SELECT DISTINCT ssid FROM connection_events ORDER BY ssid ASC`
-    )
-
-    return result[0]?.values.map(row => row[0] as string) || []
-  }
-
-  // Close DB
   close(): void {
     this.save()
     this.db.close()
