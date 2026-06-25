@@ -108,11 +108,9 @@ function Settings({ onRefresh }: Props) {
             ) : (
               events.map(evt => (
                 <div key={evt.id} style={styles.eventItem}>
-                  <div style={styles.eventTop}>
-                    <span style={styles.eventDuration}>
-                      {evt.duration_seconds ? formatDuration(evt.duration_seconds) : '进行中'}
-                    </span>
-                  </div>
+                  <span style={styles.eventDuration}>
+                    {evt.duration_seconds ? formatDuration(evt.duration_seconds) : '进行中'}
+                  </span>
                   <div style={styles.eventTime}>
                     {formatDate(evt.start_time)} {new Date(evt.start_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                     {evt.end_time && ` → ${new Date(evt.end_time).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`}
@@ -218,16 +216,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 0',
     borderBottom: '1px solid #f0f0f0'
   },
-  eventTop: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: '4px'
-  },
-  eventSSID: {
-    fontSize: '13px',
-    fontWeight: 600,
-    color: '#1d1d1f'
-  },
   eventDuration: {
     fontSize: '13px',
     color: '#007aff',
@@ -235,7 +223,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   eventTime: {
     fontSize: '11px',
-    color: '#86868b'
+    color: '#86868b',
+    marginTop: '4px'
   },
   empty: {
     textAlign: 'center' as const,
