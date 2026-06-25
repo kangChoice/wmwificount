@@ -27,6 +27,9 @@ const api = {
     testNotification: (type: 'warning' | 'normal') => ipcRenderer.invoke('settings:test-notification', type),
     getAppConfig: () => ipcRenderer.invoke('settings:get-app-config'),
     setAppConfig: (cfg: any) => ipcRenderer.invoke('settings:set-app-config', cfg)
+  },
+  calendar: {
+    isWorkday: (dateStr: string) => ipcRenderer.invoke('stats:is-workday', dateStr)
   }
 }
 

@@ -55,6 +55,10 @@ export function setupIPC(): void {
   ipcMain.handle('settings:set-app-config', (_event, cfg: any) => {
     tracker.setAppConfig(cfg)
   })
+
+  ipcMain.handle('stats:is-workday', (_event, dateStr: string) => {
+    return tracker.isWorkday(new Date(dateStr))
+  })
 }
 
 export function cleanupIPC(): void {

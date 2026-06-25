@@ -87,16 +87,17 @@ const notifiedToday: Set<string> = new Set()
 function checkScheduledNotifications(): void {
   const now = new Date()
   if (!tracker.isTodayWorkday()) return
+  if (!tracker.isNotificationsEnabled()) return
 
   const totalMin = now.getHours() * 60 + now.getMinutes()
   const warning = tracker.getWorkdayWarning()
   const times = tracker.getNotifyTimes()
 
-  for (const key of [times.time1, times.time2]) {
+  for (const key of times) {
     if (notifiedToday.has(key)) continue
     const [h, m] = key.split(':').map(Number)
+    if (isNaN(h) || isNaN(m)) continue
     const targetMin = h * 60 + m
-    // ±1 min window
     if (totalMin >= targetMin - 1 && totalMin <= targetMin + 1) {
       notifiedToday.add(key)
       if (warning.status === 'warning') {
@@ -108,7 +109,6 @@ function checkScheduledNotifications(): void {
     }
   }
 
-  // Reset at midnight
   if (now.getHours() === 0 && now.getMinutes() === 0) {
     notifiedToday.clear()
   }

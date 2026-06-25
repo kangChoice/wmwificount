@@ -28,15 +28,15 @@ export interface WarningConfig {
 export interface AppConfig {
   lookbackDays: number
   minPassDays: number
-  notifyTime1: string   // "HH:MM" e.g. "11:30"
-  notifyTime2: string   // "HH:MM" e.g. "18:00"
+  notificationsEnabled: boolean
+  notifyTimes: string[]   // ["HH:MM", ...] max 5
 }
 
 const DEFAULT_APP_CONFIG: AppConfig = {
   lookbackDays: 2,
   minPassDays: 1,
-  notifyTime1: '11:30',
-  notifyTime2: '18:00'
+  notificationsEnabled: true,
+  notifyTimes: ['11:30', '18:00']
 }
 
 export class NetworkTracker {
@@ -108,8 +108,12 @@ export class NetworkTracker {
     this.saveConfig()
   }
 
-  getNotifyTimes(): { time1: string; time2: string } {
-    return { time1: this.config.notifyTime1, time2: this.config.notifyTime2 }
+  getNotifyTimes(): string[] {
+    return [...this.config.notifyTimes]
+  }
+
+  isNotificationsEnabled(): boolean {
+    return this.config.notificationsEnabled
   }
 
   /** Register a callback that fires every second with the current total */
@@ -145,10 +149,14 @@ export class NetworkTracker {
     return this.connected
   }
 
-  /** Check if today is a real workday (holiday-aware) */
-  isTodayWorkday(): boolean {
+  /** Check if a date is a real workday (holiday-aware) */
+  isWorkday(date: Date): boolean {
     const fn = this.isWorkdayFn || ((d: Date) => d.getDay() !== 0 && d.getDay() !== 6)
-    return fn(new Date())
+    return fn(date)
+  }
+
+  isTodayWorkday(): boolean {
+    return this.isWorkday(new Date())
   }
 
   getDailyRecords(days: number): DailyRecord[] {

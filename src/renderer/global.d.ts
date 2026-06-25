@@ -23,8 +23,11 @@ declare global {
         getWarningConfig: () => Promise<{ lookbackDays: number; minPassDays: number }>
         setWarningConfig: (cfg: { lookbackDays: number; minPassDays: number }) => Promise<void>
         testNotification: (type: 'warning' | 'normal') => Promise<void>
-        getAppConfig: () => Promise<{ lookbackDays: number; minPassDays: number; notifyTime1: string; notifyTime2: string }>
+        getAppConfig: () => Promise<{ lookbackDays: number; minPassDays: number; notificationsEnabled: boolean; notifyTimes: string[] }>
         setAppConfig: (cfg: any) => Promise<void>
+      }
+      calendar: {
+        isWorkday: (dateStr: string) => Promise<boolean>
       }
     }
   }
