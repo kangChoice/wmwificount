@@ -1,25 +1,22 @@
 import { app, BrowserWindow, powerMonitor } from 'electron'
 import path from 'path'
-import { dataStore } from './storage'
-import { setupIPC, cleanupIPC, suspendCurrentSession } from './ipc-handlers'
+import { tracker } from './tracker'
+import { setupIPC, cleanupIPC } from './ipc-handlers'
 import { createTray } from './tray'
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.wifitimetracker.app')
 }
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
-let trayCreated = false
 
-// Ensure only one instance of the app runs at a time
+// Single instance lock
 const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    // Another instance was launched — focus the existing window
     if (mainWindow) {
       mainWindow.show()
       mainWindow.focus()
@@ -28,7 +25,6 @@ if (!gotTheLock) {
 }
 
 async function createWindow(): Promise<void> {
-  // Protect against duplicate window/tray creation
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.show()
     mainWindow.focus()
@@ -36,34 +32,26 @@ async function createWindow(): Promise<void> {
   }
 
   mainWindow = new BrowserWindow({
-    width: 400,
-    height: 600,
-    show: false, // Start hidden — tray-only
-    resizable: true,
-    maximizable: false,
-    minimizable: true,
-    title: 'WiFi Time Tracker',
+    width: 400, height: 600,
+    show: false,
+    resizable: true, maximizable: false, minimizable: true,
+    title: 'Network Time Tracker',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false
+      contextIsolation: true, nodeIntegration: false, sandbox: false
     }
   })
 
-  // Hide dock icon on macOS (tray-only app)
   if (process.platform === 'darwin') {
     app.dock?.hide()
   }
 
-  // Load the renderer
   if (process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
 
-  // Hide window instead of closing
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
       event.preventDefault()
@@ -71,49 +59,35 @@ async function createWindow(): Promise<void> {
     }
   })
 
-  // Create system tray
   createTray(mainWindow)
+  setupIPC()
 
-  // Setup IPC and WiFi monitoring
-  setupIPC(mainWindow)
+  // Start sending tick updates to the renderer
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    tracker.startTicking((totalSeconds) => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('stats:tick', {
+            connected: tracker.getIsConnected(),
+            totalSeconds
+          })
+        }
+      } catch { /* ignore */ }
+    })
+  }
 }
 
 app.whenReady().then(async () => {
-  // Initialize database
-  await dataStore.init()
+  await tracker.init()
 
-  // Close any unfinished sessions from previous run
-  // Uses start_time as end_time, so duration = 0 (no false counting)
-  dataStore.closeAllActiveEvents()
+  powerMonitor.on('suspend', () => tracker.suspend())
 
-  // Listen for system sleep → close active session precisely
-  powerMonitor.on('suspend', () => {
-    suspendCurrentSession()
-  })
-
-  // On resume, WiFiMonitor's polling will auto-detect reconnection
-  // and start a new session. No action needed here.
-
-  // Create window (starts hidden)
   await createWindow()
 })
 
 app.on('before-quit', () => {
   isQuitting = true
-  // Close active session with correct end time before exit
-  suspendCurrentSession()
+  tracker.finalizeToday()
+  tracker.shutdown()
   cleanupIPC()
-})
-
-app.on('window-all-closed', () => {
-  // Don't quit — tray keeps the process alive
-})
-
-// macOS: re-create window if dock icon is clicked (though we hide dock)
-app.on('activate', () => {
-  if (!mainWindow) {
-    createWindow()
-  } else {
-    mainWindow.show()
-  }
 })

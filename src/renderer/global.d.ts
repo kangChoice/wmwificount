@@ -3,15 +3,12 @@ export {}
 declare global {
   interface Window {
     electronAPI: {
-      wifi: {
-        getState: () => Promise<any>
-        getActiveEvent: () => Promise<any>
-        onStateChange: (callback: (state: any) => void) => () => void
-      }
       stats: {
-        getTodayTotal: () => Promise<number>
-        getDaily: (days: number) => Promise<any[]>
-        getEvents: (days: number) => Promise<any[]>
+        getTotal: () => Promise<number>
+        getConnected: () => Promise<boolean>
+        getDaily: (days: number) => Promise<{ date: string; seconds: number }[]>
+        getAllRecords: () => Promise<{ date: string; seconds: number }[]>
+        onTick: (callback: (data: { connected: boolean; totalSeconds: number }) => void) => () => void
       }
       settings: {
         getAutoStart: () => Promise<boolean>

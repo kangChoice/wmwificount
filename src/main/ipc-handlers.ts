@@ -1,129 +1,32 @@
-import { ipcMain, BrowserWindow, app } from 'electron'
-import path from 'path'
-import fs from 'fs'
-import { dataStore } from './storage'
-import { NetworkMonitor } from './monitor'
-import { ConnectionEvent, DailyStats, NetworkState } from './monitor/types'
+import { ipcMain, app } from 'electron'
+import { tracker } from './tracker'
 
-const settingsPath = path.join(app.getPath('userData'), 'settings.json')
-
-function getAutoStart(): boolean {
-  return app.getLoginItemSettings().openAtLogin
-}
-
-function setAutoStart(enabled: boolean): void {
-  app.setLoginItemSettings({
-    openAtLogin: enabled,
-    path: app.getPath('exe')
-  })
-}
-
-let monitor: NetworkMonitor | null = null
-let currentSessionId: string | null = null
-
-export function getMonitor(): NetworkMonitor | null {
-  return monitor
-}
-
-export function setupIPC(mainWindow: BrowserWindow): void {
-  monitor = new NetworkMonitor((state: NetworkState) => {
-    // Always handle state change for session tracking
-    // (don't gate on window existence — session tracking should always work)
-    handleNetworkStateChange(state)
-
-    // Notify the renderer if it's available
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('wifi:state-change', state)
-    }
+export function setupIPC(): void {
+  ipcMain.handle('stats:get-total', (): number => {
+    return tracker.getTotalSeconds()
   })
 
-  monitor.start()
-
-  // Crash recovery: close any open session from last run
-  const activeEvent = dataStore.getActiveEvent()
-  if (activeEvent) {
-    monitor.getCurrentState().then(state => {
-      if (!state.connected && activeEvent) {
-        dataStore.endEvent(activeEvent.id)
-      }
-    })
-  }
-
-  // --- IPC Handlers ---
-
-  ipcMain.handle('wifi:get-state', async (): Promise<NetworkState | null> => {
-    if (!monitor) return null
-    return monitor.getCurrentState()
+  ipcMain.handle('stats:get-connected', (): boolean => {
+    return tracker.getIsConnected()
   })
 
-  ipcMain.handle('wifi:get-active-event', async (): Promise<ConnectionEvent | null> => {
-    let event = dataStore.getActiveEvent()
-    // Fallback: if there's no active event but we're connected, create one now
-    if (!event && monitor) {
-      const state = await monitor.getCurrentState()
-      if (state.connected) {
-        event = dataStore.startEvent()
-        currentSessionId = event.id
-      }
-    }
-    return event
+  ipcMain.handle('stats:get-daily', (_event, days: number) => {
+    return tracker.getDailyRecords(days)
   })
 
-  ipcMain.handle('stats:get-today-total', (): number => {
-    return dataStore.getTodayTotalSeconds()
-  })
-
-  ipcMain.handle('stats:get-daily', (_event, days: number): DailyStats[] => {
-    return dataStore.getDailyStats(days)
-  })
-
-  ipcMain.handle('stats:get-events', (_event, days: number): ConnectionEvent[] => {
-    return dataStore.getEvents(days)
+  ipcMain.handle('stats:get-all-records', () => {
+    return tracker.getAllRecords()
   })
 
   ipcMain.handle('settings:get-auto-start', (): boolean => {
-    return getAutoStart()
+    return app.getLoginItemSettings().openAtLogin
   })
 
   ipcMain.handle('settings:set-auto-start', (_event, enabled: boolean): void => {
-    setAutoStart(enabled)
+    app.setLoginItemSettings({ openAtLogin: enabled })
   })
-
-  function handleNetworkStateChange(state: NetworkState): void {
-    if (state.connected) {
-      // Sync with DB (in case session was closed by suspend)
-      if (currentSessionId) {
-        const dbActive = dataStore.getActiveEvent()
-        if (!dbActive || dbActive.id !== currentSessionId) {
-          currentSessionId = null
-        }
-      }
-      // Start new session if none active
-      if (!currentSessionId) {
-        const event = dataStore.startEvent()
-        currentSessionId = event.id
-      }
-    } else {
-      // Disconnected — close the ongoing session
-      if (currentSessionId) {
-        dataStore.endEvent(currentSessionId)
-        currentSessionId = null
-      }
-    }
-  }
-}
-
-export function suspendCurrentSession(): void {
-  const active = dataStore.getActiveEvent()
-  if (active) {
-    dataStore.endEventAt(active.id, new Date())
-  }
 }
 
 export function cleanupIPC(): void {
-  if (monitor) {
-    monitor.stop()
-    monitor = null
-  }
-  dataStore.close()
+  ipcMain.removeAllListeners()
 }

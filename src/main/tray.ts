@@ -3,16 +3,10 @@ import path from 'path'
 import fs from 'fs'
 
 function getTrayIconPath(): string {
-  // In development: __dirname = out/main/, icon = ../../resources/icons/tray-icon.png
-  // In packaged app: icon is bundled in resources/ under app root
   const devPath = path.join(__dirname, '../../resources/icons/tray-icon.png')
   if (fs.existsSync(devPath)) return devPath
-
-  // Packaged app fallback
   const pkgPath = path.join(app.getAppPath(), 'resources/icons/tray-icon.png')
   if (fs.existsSync(pkgPath)) return pkgPath
-
-  // Last resort: use the build icon
   return path.join(app.getAppPath(), 'resources/build/icon.png')
 }
 
@@ -22,11 +16,8 @@ export function createTray(mainWindow: BrowserWindow): Tray {
 
   try {
     const img = nativeImage.createFromPath(iconPath)
-    // Resize for tray (small icon looks better)
-    const resized = img.resize({ width: 22, height: 22 })
-    tray = new Tray(resized)
+    tray = new Tray(img.resize({ width: 22, height: 22 }))
   } catch {
-    // Ultimate fallback: tiny 1x1 transparent pixel
     const fallbackPng = Buffer.from([
       0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
       0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -42,37 +33,17 @@ export function createTray(mainWindow: BrowserWindow): Tray {
   }
 
   const contextMenu = Menu.buildFromTemplate([
-    {
-      label: '显示 WiFi Time Tracker',
-      click: () => {
-        mainWindow.show()
-        mainWindow.focus()
-      }
-    },
+    { label: '显示', click: () => { mainWindow.show(); mainWindow.focus() } },
     { type: 'separator' },
-    {
-      label: '退出',
-      click: () => {
-        app.quit()
-      }
-    }
+    { label: '退出', click: () => app.quit() }
   ])
 
-  tray.setToolTip('WiFi Time Tracker')
+  tray.setToolTip('Network Time Tracker')
   tray.setContextMenu(contextMenu)
-
-  tray.on('double-click', () => {
-    mainWindow.show()
-    mainWindow.focus()
-  })
-
+  tray.on('double-click', () => { mainWindow.show(); mainWindow.focus() })
   tray.on('click', () => {
-    if (process.platform === 'win32') {
-      tray.popUpContextMenu()
-    } else {
-      mainWindow.show()
-      mainWindow.focus()
-    }
+    if (process.platform === 'win32') tray.popUpContextMenu()
+    else { mainWindow.show(); mainWindow.focus() }
   })
 
   return tray

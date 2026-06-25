@@ -1,42 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-export interface ElectronAPI {
-  wifi: {
-    getState: () => Promise<any>
-    getActiveEvent: () => Promise<any>
-    onStateChange: (callback: (state: any) => void) => () => void
-  }
+const api = {
   stats: {
-    getTodayTotal: () => Promise<number>
-    getDaily: (days: number) => Promise<any[]>
-    getEvents: (days: number) => Promise<any[]>
-  }
-  settings: {
-    getAutoStart: () => Promise<boolean>
-    setAutoStart: (enabled: boolean) => Promise<void>
-  }
-}
-
-const api: ElectronAPI = {
-  wifi: {
-    getState: () => ipcRenderer.invoke('wifi:get-state'),
-    getActiveEvent: () => ipcRenderer.invoke('wifi:get-active-event'),
-    onStateChange: (callback) => {
-      const handler = (_event: any, state: any) => callback(state)
-      ipcRenderer.on('wifi:state-change', handler)
-      return () => {
-        ipcRenderer.removeListener('wifi:state-change', handler)
-      }
+    getTotal: () => ipcRenderer.invoke('stats:get-total'),
+    getConnected: () => ipcRenderer.invoke('stats:get-connected'),
+    getDaily: (days: number) => ipcRenderer.invoke('stats:get-daily', days),
+    getAllRecords: () => ipcRenderer.invoke('stats:get-all-records'),
+    onTick: (callback: (data: { connected: boolean; totalSeconds: number }) => void) => {
+      const handler = (_event: any, data: any) => callback(data)
+      ipcRenderer.on('stats:tick', handler)
+      return () => { ipcRenderer.removeListener('stats:tick', handler) }
     }
-  },
-  stats: {
-    getTodayTotal: () => ipcRenderer.invoke('stats:get-today-total'),
-    getDaily: (days) => ipcRenderer.invoke('stats:get-daily', days),
-    getEvents: (days) => ipcRenderer.invoke('stats:get-events', days),
   },
   settings: {
     getAutoStart: () => ipcRenderer.invoke('settings:get-auto-start'),
-    setAutoStart: (enabled) => ipcRenderer.invoke('settings:set-auto-start', enabled)
+    setAutoStart: (enabled: boolean) => ipcRenderer.invoke('settings:set-auto-start', enabled)
   }
 }
 
